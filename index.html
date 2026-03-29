@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Sale Tracker">
   <title>Sale Tracker</title>
-  <meta name="sale-tracker-version" content="v28.1">
-  <link rel="manifest" href="manifest.webmanifest?v=28.2">
+  <meta name="sale-tracker-version" content="v28.3">
+  <link rel="manifest" href="manifest.webmanifest?v=28.3">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +17,7 @@
     <div>
       <h1>Sale Tracker</h1>
       <p>Lot-based tracking built for iPhone</p>
-      <p class="build-version">Build v28.2</p>
+      <p class="build-version">Build v28.3</p>
     </div>
     <button id="infoBtn" class="icon-btn" aria-label="Info">?</button>
   </header>
@@ -30,6 +30,18 @@
 
   <main class="main">
     <section id="trackerTab" class="panel active">
+
+      <section class="hero-card summary-table-card section-card year-card">
+        <div class="card-header">
+          <div>
+            <h2>Year(s)</h2>
+            <p class="muted summary-sub">Realized lots show in the year of the latest sale. Open lots stay in the current year until realized.</p>
+          </div>
+        </div>
+        <div id="yearFilterBar" class="year-filter-bar"></div>
+      </section>
+
+
       <div class="summary-grid combined-summary">
         <div class="summary-card">
           <div class="summary-title">All Lots</div>
