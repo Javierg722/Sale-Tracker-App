@@ -1,7 +1,7 @@
-const APP_VERSION = "v12";
+const APP_VERSION = "v13";
 
-const STORE_KEY = "sale-tracker-pwa-v12";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v11", "sale-tracker-pwa-v10", "sale-tracker-pwa-v9", "sale-tracker-pwa-v8", "sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v13";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10", "sale-tracker-pwa-v9", "sale-tracker-pwa-v8", "sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -242,18 +242,8 @@ function seedIfEmpty(){
 
 function salesForLot(lotId){ return state.sales.filter(s => s.lotId===lotId).sort((a,b)=>a.sellDate.localeCompare(b.sellDate)); }
 
-function formatLotIdPrice(value){
-  const numValue = toNumber(value);
-  if(numValue === null) return "";
-  return String(numValue.toFixed(8)).replace(/0+$/,"").replace(/\.$/,"");
-}
-function stableLotIdFromFields(ticker, buyDate, costPerShare){
-  const pricePart = formatLotIdPrice(costPerShare);
-  if(!ticker || !buyDate || !pricePart) return "";
-  return `${String(ticker).trim().toUpperCase()}-${shortDateKey(buyDate)}-${pricePart}`;
-}
 function getDisplayLotId(lot){
-  return lot.lotIdText || stableLotIdFromFields(lot.ticker, lot.buyDate, lot.costPerShare) || `${lot.ticker}-${shortDateKey(lot.buyDate)}-R${shortId(lot.id)}`;
+  return lot.lotIdText || `${lot.ticker}-${shortDateKey(lot.buyDate)}-R${shortId(lot.id)}`;
 }
 function hasAdjustedBasis(row){
   if(typeof row.adjustedCostPerShare === "number" && typeof row.costPerShare === "number"){
@@ -408,45 +398,44 @@ function todayIso(){
   const local = new Date(dt.getTime() - dt.getTimezoneOffset()*60000);
   return local.toISOString().slice(0,10);
 }
-function countdownSummaryRows(){
-  const byTicker = new Map();
-  const today = todayIso();
-  for(const lot of state.lots){
-    if(!lot.ticker || !lot.buyDate) continue;
-    const dayOffset = daysBetween(lot.buyDate, today);
-    const isRecentBuy = dayOffset >= 0 && dayOffset <= 30 && (lot.sharesBought > 0);
-    if(!isRecentBuy) continue;
 
-    const ticker = lot.ticker;
+function countdownSummaryRows(){
+  const rows = computedRows();
+  const byTicker = new Map();
+  for(const row of rows){
+    const ticker = row.ticker;
     const existing = byTicker.get(ticker) || {
       ticker,
       recentBuyEndsDate: "",
       latestLossSaleDate: "",
       rebuyDate: "",
-      rebuyCounter: ""
+      daysUntilRebuy: ""
     };
-
-    if(!existing.recentBuyEndsDate || addDays(lot.buyDate, 31) > existing.recentBuyEndsDate){
-      existing.recentBuyEndsDate = addDays(lot.buyDate, 31);
-    }
-
-    let latestLossSaleDate = existing.latestLossSaleDate || "";
-    for(const sale of salesForLot(lot.id)){
-      const basisPerShare = (typeof lot.importedAdjustedCostPerShare === "number" && lot.importedAdjustedCostPerShare > 0)
-        ? lot.importedAdjustedCostPerShare
-        : lot.costPerShare;
-      const gainLoss = sale.sharesSold * (sale.salePricePerShare - basisPerShare);
-      if(gainLoss < 0 && (!latestLossSaleDate || sale.sellDate > latestLossSaleDate)){
-        latestLossSaleDate = sale.sellDate;
+    if(row.buyDate){
+      const daysSinceBuy = daysBetween(row.buyDate, todayIso());
+      if(daysSinceBuy >= 0 && daysSinceBuy <= 30){
+        const recentBuyEndsDate = addDays(row.buyDate, 30);
+        if(!existing.rebuyDate || row.buyDate > existing.rebuyDate){
+          existing.rebuyDate = row.buyDate;
+          existing.recentBuyEndsDate = recentBuyEndsDate;
+          existing.daysUntilRebuy = Math.max(0, daysBetween(todayIso(), recentBuyEndsDate));
+        }
       }
     }
-    existing.latestLossSaleDate = latestLossSaleDate;
-    existing.rebuyDate = latestLossSaleDate ? addDays(latestLossSaleDate, 31) : "";
-    existing.rebuyCounter = existing.rebuyDate ? Math.max(0, daysBetween(today, existing.rebuyDate)) : "";
+    const basisPerShare = (typeof row.adjustedCostPerShare === "number" && row.adjustedCostPerShare > 0) ? row.adjustedCostPerShare : row.costPerShare;
+    for(const sale of salesForLot(row.id)){
+      const gainLoss = sale.sharesSold * (sale.salePricePerShare - basisPerShare);
+      if(gainLoss < 0 && (!existing.latestLossSaleDate || sale.sellDate > existing.latestLossSaleDate)){
+        existing.latestLossSaleDate = sale.sellDate;
+      }
+    }
     byTicker.set(ticker, existing);
   }
-  return [...byTicker.values()].sort((a,b)=>String(a.recentBuyEndsDate).localeCompare(String(b.recentBuyEndsDate)));
+  return [...byTicker.values()]
+    .filter(row => !!row.rebuyDate)
+    .sort((a,b) => (a.recentBuyEndsDate || "").localeCompare(b.recentBuyEndsDate || "") || a.ticker.localeCompare(b.ticker));
 }
+
 function ytdCapitalSummary(){
   const year = new Date().getFullYear();
   let gains = 0;
@@ -462,16 +451,18 @@ function ytdCapitalSummary(){
   }
   return {gains, losses, net: gains + losses, year};
 }
+
 function renderCountdownSummaryTable(){
   const target = document.getElementById("countdownSummaryTable");
   if(!target) return;
   const rows = countdownSummaryRows();
   if(!rows.length){
-    target.innerHTML = `<div class="empty-mini">No tickers currently have an active recent rebuy window.</div>`;
+    target.innerHTML = `<div class="empty-mini">No tickers currently show Recent Buy = Yes.</div>`;
     return;
   }
-  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table"><thead><tr><th>Ticker</th><th>Recent Buy Ends</th><th>Latest Loss Sale Date</th><th>Rebuy Date</th><th>Days Until Rebuy</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${dateFmt(row.latestSaleDate)}</td><td>${dateFmt(row.rebuyDate)}</td><td>${row.rebuyCounter}</td></tr>`).join("")}</tbody></table></div>`;
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table"><thead><tr><th>Ticker</th><th>Recent Buy Ends</th><th>Latest Loss Sale Date</th><th>Rebuy Date</th><th>Days Until Rebuy</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${row.latestLossSaleDate ? dateFmt(row.latestLossSaleDate) : ""}</td><td>${dateFmt(row.rebuyDate)}</td><td>${row.daysUntilRebuy === "" ? "" : row.daysUntilRebuy}</td></tr>`).join("")}</tbody></table></div>`;
 }
+
 function renderYtdCapitalSummaryTable(){
   const target = document.getElementById("ytdCapitalSummaryTable");
   if(!target) return;
@@ -716,8 +707,7 @@ function parseWorkbookState(workbook){
 
       if(!ticker || !buyDate || sharesBought === null || costPerShare === null || sharesRemaining === null) continue;
 
-      const stableLotId = lotIdText || stableLotIdFromFields(ticker, buyDate, costPerShare) || `xlsx-row-${i+1}`;
-      const groupKey = `${ticker}||${buyDate}||${formatLotIdPrice(costPerShare)}||${stableLotId}`;
+      const groupKey = lotIdText || `xlsx-row-${i+1}`;
       if(!grouped.has(groupKey)){
         grouped.set(groupKey, {
           id: `xlsx-${groupKey.replace(/[^A-Za-z0-9_-]/g, "_")}`,
@@ -725,7 +715,7 @@ function parseWorkbookState(workbook){
           sleeve: inferSleeve(ticker),
           buyDate,
           costPerShare,
-          lotIdText: stableLotId,
+          lotIdText: groupKey,
           sharesBoughtCandidates: [],
           remainingCandidates: [],
           noteParts: [],
@@ -878,22 +868,6 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("importJson").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if(!file) return;
-  try{
-    const parsed = JSON.parse(await file.text());
-    state = normalizeState(parsed);
-    if(!state.lots.length) throw new Error("Invalid JSON backup.");
-    saveState();
-    render();
-    alert("JSON import complete.");
-  } catch(err){
-    alert("Import failed: " + err.message);
-  } finally {
-    e.target.value = "";
-  }
-});
 
 document.getElementById("importXlsx").addEventListener("change", async (e) => {
   const file = e.target.files[0];

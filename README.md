@@ -1,1 +1,6 @@
-# Sale Tracker v12\n\nChanges:\n- service worker remains disabled during active editing\n- countdown summary now shows only tickers with Recent Buy = Yes and the 5 requested columns\n- workbook import groups only when ticker, buy date, buy price, and Lot ID all align\n- stable Lot ID default matches ticker + buy date + buy price\n
+# Sale Tracker PWA v13
+
+- countdown summary only shows tickers with Recent Buy = Yes
+- row status/wash/adjusted-basis tags are smaller and tucked top-right
+- Import JSON Backup removed from Tools
+- service worker remains disabled/unregistered on load

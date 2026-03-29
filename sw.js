@@ -1,1 +1,1 @@
-// Service worker intentionally disabled during active editing.
+// service worker intentionally disabled in dev revisions
