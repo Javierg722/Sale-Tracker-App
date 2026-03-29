@@ -1,7 +1,7 @@
-const APP_VERSION = "v24";
+const APP_VERSION = "v25";
 
-const STORE_KEY = "sale-tracker-pwa-v24";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v25";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -261,8 +261,18 @@ function renderWashMatchDialog(){
 function finalizeBuyWithMatches(matchRecords){
   if(!pendingBuyDraft) return;
   const lot = pendingBuyDraft.lot;
-  state.lots.push(lot);
   if(!Array.isArray(state.washMatches)) state.washMatches = [];
+  if(pendingBuyDraft.editLotId){
+    const idx = state.lots.findIndex(l => l.id === pendingBuyDraft.editLotId);
+    if(idx >= 0){
+      state.lots[idx] = lot;
+    } else {
+      state.lots.push(lot);
+    }
+    state.washMatches = state.washMatches.filter(m => m.replacementLotId !== pendingBuyDraft.editLotId);
+  } else {
+    state.lots.push(lot);
+  }
   state.washMatches.push(...matchRecords);
   sortLots();
   saveState();
@@ -603,13 +613,33 @@ function computeCalculatedModel(){
     const sourceWashLotIds = [...(basisSourceLotIds[lot.id] || new Set())];
     let matchStatus = "";
     if(basisAdjustmentIn > 0){
-      matchStatus = sourceWashLotIds.length
-        ? `Replacement lot receiving wash basis: ${sourceWashLotIds.map(id => displayLotIdById(id)).join(" & ")}`
-        : "Replacement lot receiving wash basis";
+      const replacementMatches = replacementMatchesForLot(lot.id);
+      const groupedSources = [];
+      const sourceMap = new Map();
+      for(const match of replacementMatches){
+        const key = match.sourceLotId;
+        sourceMap.set(key, (sourceMap.get(key) || 0) + (match.matchedShares || 0));
+      }
+      for(const [sourceId, matchedShares] of sourceMap.entries()){
+        groupedSources.push(`${displayLotIdById(sourceId)}${matchedShares ? ` (${num(matchedShares)})` : ""}`);
+      }
+      matchStatus = groupedSources.length
+        ? `Replacement lot receiving wash basis: ${groupedSources.join(" & ")}`
+        : (sourceWashLotIds.length ? `Replacement lot receiving wash basis: ${sourceWashLotIds.map(id => displayLotIdById(id)).join(" & ")}` : "Replacement lot receiving wash basis");
     } else if(lotStats.matchStatus){
-      matchStatus = appliedReplacementLotIds.length
-        ? `Wash loss carried into replacement lot basis: ${appliedReplacementLotIds.map(id => displayLotIdById(id)).join(" & ")}`
-        : lotStats.matchStatus;
+      const sourceMatches = sourceMatchesForLot(lot.id);
+      const groupedReplacements = [];
+      const replacementMap = new Map();
+      for(const match of sourceMatches){
+        const key = match.replacementLotId;
+        replacementMap.set(key, (replacementMap.get(key) || 0) + (match.matchedShares || 0));
+      }
+      for(const [replacementId, matchedShares] of replacementMap.entries()){
+        groupedReplacements.push(`${displayLotIdById(replacementId)}${matchedShares ? ` (${num(matchedShares)})` : ""}`);
+      }
+      matchStatus = groupedReplacements.length
+        ? `Wash loss carried into replacement lot basis: ${groupedReplacements.join(" & ")}`
+        : (appliedReplacementLotIds.length ? `Wash loss carried into replacement lot basis: ${appliedReplacementLotIds.map(id => displayLotIdById(id)).join(" & ")}` : lotStats.matchStatus);
     }
 
     return {
@@ -740,16 +770,37 @@ function countdownSummaryRows(){
 
 function ytdCapitalSummary(){
   const year = new Date().getFullYear();
-  let gains = 0;
-  let losses = 0;
+  let shortTermGains = 0;
+  let shortTermLosses = 0;
+  let longTermGains = 0;
+  let longTermLosses = 0;
   const model = computeCalculatedModel();
+  const lotMap = new Map(state.lots.map(l => [l.id, l]));
   for(const sale of state.sales){
     if(!sale.sellDate || Number(sale.sellDate.slice(0,4)) !== year) continue;
+    const lot = lotMap.get(sale.lotId);
+    if(!lot || !lot.buyDate) continue;
     const gainLoss = model.saleGainLossById[sale.id] ?? 0;
-    if(gainLoss >= 0) gains += gainLoss;
-    else losses += gainLoss;
+    const holdingDays = daysBetween(lot.buyDate, sale.sellDate);
+    const isLongTerm = holdingDays > 365;
+    if(isLongTerm){
+      if(gainLoss >= 0) longTermGains += gainLoss;
+      else longTermLosses += gainLoss;
+    } else {
+      if(gainLoss >= 0) shortTermGains += gainLoss;
+      else shortTermLosses += gainLoss;
+    }
   }
-  return {gains, losses, net: gains + losses, year};
+  return {
+    year,
+    shortTermGains,
+    shortTermLosses,
+    shortTermNet: shortTermGains + shortTermLosses,
+    longTermGains,
+    longTermLosses,
+    longTermNet: longTermGains + longTermLosses,
+    totalNet: shortTermGains + shortTermLosses + longTermGains + longTermLosses
+  };
 }
 
 function renderCountdownSummaryTable(){
@@ -760,14 +811,14 @@ function renderCountdownSummaryTable(){
     target.innerHTML = `<div class="empty-mini">No tickers currently show Recent Buy = Yes.</div>`;
     return;
   }
-  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table"><thead><tr><th>Ticker</th><th>Recent Buy Ends</th><th>Latest Loss Sale Date</th><th>Rebuy Date</th><th>Days Until Rebuy</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${row.latestLossSaleDate ? dateFmt(row.latestLossSaleDate) : ""}</td><td>${dateFmt(row.rebuyDate)}</td><td>${row.daysUntilRebuy === "" ? "" : row.daysUntilRebuy}</td></tr>`).join("")}</tbody></table></div>`;
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact countdown-table"><thead><tr><th>Ticker</th><th>Latest Loss Sale</th><th>Rebuy Date</th><th>Recent Buy Ends</th><th>Days Left</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${row.latestLossSaleDate ? dateFmt(row.latestLossSaleDate) : ""}</td><td>${dateFmt(row.rebuyDate)}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${row.daysUntilRebuy === "" ? "" : row.daysUntilRebuy}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
 function renderYtdCapitalSummaryTable(){
   const target = document.getElementById("ytdCapitalSummaryTable");
   if(!target) return;
   const summary = ytdCapitalSummary();
-  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact"><thead><tr><th>Year</th><th>Capital Gains</th><th>Capital Losses</th><th>Net Capital</th></tr></thead><tbody><tr><td>${summary.year}</td><td>${currency(summary.gains)}</td><td>${currency(summary.losses)}</td><td>${currency(summary.net)}</td></tr></tbody></table></div>`;
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact ytd-table"><thead><tr><th rowspan="2">Year</th><th colspan="3">Short-Term</th><th colspan="3">Long-Term</th><th rowspan="2">Total Net</th></tr><tr><th>Gains</th><th>Losses</th><th>Net</th><th>Gains</th><th>Losses</th><th>Net</th></tr></thead><tbody><tr><td>${summary.year}</td><td>${currency(summary.shortTermGains)}</td><td>${currency(summary.shortTermLosses)}</td><td>${currency(summary.shortTermNet)}</td><td>${currency(summary.longTermGains)}</td><td>${currency(summary.longTermLosses)}</td><td>${currency(summary.longTermNet)}</td><td>${currency(summary.totalNet)}</td></tr></tbody></table></div>`;
 }
 
 function overallSummary(){
@@ -903,7 +954,7 @@ function renderWashCards(target, rows){
         <div class="core-item"><span class="label">Realized Loss</span><span class="value">${currency(Math.abs(r.realizedGainLoss || 0))}</span></div>
         <div class="core-item"><span class="label">Matched Shares</span><span class="value">${num(r.candidateMatchedShares)}</span></div>
         <div class="core-item"><span class="label">Disallowed Wash Loss</span><span class="value">${currency(r.disallowedWashLoss)}</span></div>
-        <div class="core-item"><span class="label">Replacement Lot ID</span><span class="value">${r.appliedReplacementLotId || ""}</span></div>
+        <div class="core-item"><span class="label">Replacement Lot ID</span><span class="value">${r.appliedReplacementLotId ? displayLotIdById(r.appliedReplacementLotId) : ""}</span></div>
       </div>
       ${r.matchStatus ? `<div class="lot-sub" style="margin-top:10px;color:#234a73;font-weight:700">${r.matchStatus}</div>` : ``}
     </article>
@@ -973,8 +1024,8 @@ function openDetail(lotId){
   if(detailActions){
     detailActions.innerHTML = `
       <button type="button" class="secondary-btn" id="summaryFromDetail">Summary</button>
-      <button type="button" class="secondary-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>
-      <button type="button" class="secondary-btn" onclick="openEditBuyDialog('${r.id}')">Edit Buy</button>
+      <button type="button" class="secondary-btn delete-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>
+      <button type="button" class="secondary-btn edit-btn" onclick="openEditBuyDialog('${r.id}')">Edit Buy</button>
       <button type="button" class="primary-btn" id="closeDetail">Done</button>
     `;
     document.getElementById("summaryFromDetail").addEventListener("click", () => {
@@ -1078,6 +1129,9 @@ function deleteBuy(lotId){
   if(!confirm(`Delete buy lot ${row.ticker} (${row.lotIdText})?${warning}`)) return;
   state.sales = state.sales.filter(s => s.lotId !== lotId);
   state.lots = state.lots.filter(l => l.id !== lotId);
+  if(Array.isArray(state.washMatches)){
+    state.washMatches = state.washMatches.filter(m => m.sourceLotId !== lotId && m.replacementLotId !== lotId);
+  }
   saveState();
   closeDialogs();
   render();
@@ -1319,14 +1373,14 @@ document.getElementById("lotForm").addEventListener("submit", (e) => {
   if(editId){
     const idx = state.lots.findIndex(l => l.id === editId);
     if(idx < 0) return;
-    const lot = state.lots[idx];
-    const soldShares = Math.max(0, (lot.sharesBought || 0) - (lot.sharesRemaining || 0));
+    const existingLot = state.lots[idx];
+    const soldShares = Math.max(0, (existingLot.sharesBought || 0) - (existingLot.sharesRemaining || 0));
     if(sharesBought < soldShares){
       alert(`Shares Bought cannot be less than shares already sold (${num(soldShares)}).`);
       return;
     }
-    state.lots[idx] = {
-      ...lot,
+    const updatedLot = {
+      ...existingLot,
       ticker,
       sleeve,
       buyDate,
@@ -1336,6 +1390,18 @@ document.getElementById("lotForm").addEventListener("submit", (e) => {
       sharesRemaining: Math.max(0, sharesBought - soldShares),
       lotIdText: worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare)
     };
+    const candidates = candidateLossLotsForReplacement(ticker, buyDate, sharesBought, editId);
+    if(Array.isArray(state.washMatches)){
+      state.washMatches = state.washMatches.filter(m => m.replacementLotId !== editId);
+    }
+    if(candidates.length){
+      pendingBuyDraft = { lot: updatedLot, candidates, editLotId: editId };
+      document.getElementById("washMatchContext").textContent = `${updatedLot.lotIdText} • ${num(sharesBought)} replacement shares available`;
+      renderWashMatchDialog();
+      document.getElementById("washMatchDialog").showModal();
+      return;
+    }
+    state.lots[idx] = updatedLot;
     sortLots();
     saveState();
     resetLotDialogMode();
