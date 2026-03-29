@@ -1,24 +1,200 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Sale Tracker</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#234a73">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Sale Tracker">
+  <title>Sale Tracker</title>
+  <meta name="sale-tracker-version" content="v8">
+  <link rel="manifest" href="manifest.webmanifest?v=8">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<h1>Sale Tracker</h1>
-<p><strong>Build v9</strong></p>
+  <header class="topbar">
+    <div>
+      <h1>Sale Tracker</h1>
+      <p>Lot-based tracking built for iPhone</p>
+      <p class="build-version">Build v8</p>
+    </div>
+    <button id="infoBtn" class="icon-btn" aria-label="Info">?</button>
+  </header>
 
-<div id="filters">
-<button onclick="toggleFilter('us-open')">US Open</button>
-<button onclick="toggleFilter('us-closed')">US Closed</button>
-<button onclick="toggleFilter('intl-open')">Intl Open</button>
-<button onclick="toggleFilter('intl-closed')">Intl Closed</button>
-</div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="tracker">Tracker</button>
+    <button class="tab" data-tab="wash">Wash Review</button>
+    <button class="tab" data-tab="tools">Tools</button>
+  </nav>
 
-<div id="list"></div>
+  <main class="main">
+    <section id="trackerTab" class="panel active">
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-title">U.S.</div>
+          <button class="summary-metric summary-filter" data-sleeve="U.S." data-bucket="open" type="button"><span>Open lots</span><strong id="usOpenLots">0</strong></button>
+          <button class="summary-metric summary-filter" data-sleeve="U.S." data-bucket="closed" type="button"><span>Closed lots</span><strong id="usClosedLots">0</strong></button>
+          <button class="summary-metric summary-filter" data-sleeve="U.S." data-bucket="wash" type="button"><span>Wash sales</span><strong id="usWashCount">0</strong></button>
+        </div>
+        <div class="summary-card">
+          <div class="summary-title">International</div>
+          <button class="summary-metric summary-filter" data-sleeve="International" data-bucket="open" type="button"><span>Open lots</span><strong id="intlOpenLots">0</strong></button>
+          <button class="summary-metric summary-filter" data-sleeve="International" data-bucket="closed" type="button"><span>Closed lots</span><strong id="intlClosedLots">0</strong></button>
+          <button class="summary-metric summary-filter" data-sleeve="International" data-bucket="wash" type="button"><span>Wash sales</span><strong id="intlWashCount">0</strong></button>
+        </div>
+      </div>
 
-<script src="app.js"></script>
+      <section class="sleeve-section">
+        <div class="section-head">
+          <h2>U.S.</h2>
+          <button id="addUsBtn" class="primary-btn small">Add Buy</button>
+        </div>
+        <div id="usList" class="lot-list"></div>
+      </section>
+
+      <section class="sleeve-section">
+        <div class="section-head">
+          <h2>International</h2>
+          <button id="addIntlBtn" class="primary-btn small">Add Buy</button>
+        </div>
+        <div id="intlList" class="lot-list"></div>
+      </section>
+    </section>
+
+    <section id="washTab" class="panel">
+      <div class="hero-card">
+        <h2>Wash Basis Adjustments</h2>
+        <p>Only sold-loss rows where Wash Sale = Yes appear here.</p>
+      </div>
+      <div id="washList" class="lot-list"></div>
+    </section>
+
+    <section id="toolsTab" class="panel">
+      <div class="hero-card">
+        <h2>Tools</h2>
+        <p>The app now starts with your actual workbook data. Use spreadsheet import anytime you update the Excel file and want the app refreshed. Export creates a workbook copy with your current app data written into the trade-entry cells while keeping formulas in place.</p>
+      </div>
+
+      <div class="tool-card">
+        <button id="exportBtn" class="primary-btn full">Export Spreadsheet (.xlsx)</button>
+        <label class="secondary-btn full file-label">
+          Import Spreadsheet (.xlsx)
+          <input type="file" id="importXlsx" accept=".xlsx,.xlsm,.xls" hidden>
+        </label>
+        <label class="secondary-btn full file-label">
+          Import JSON Backup
+          <input type="file" id="importJson" accept="application/json" hidden>
+        </label>
+      </div>
+
+      <div class="tool-card">
+        <h3>Manual entry rules</h3>
+        <ul>
+          <li>New buy = new lot</li>
+          <li>Full sale = close the lot</li>
+          <li>Partial sale = split the lot into a sold slice and remaining open slice</li>
+          <li>Spreadsheet import reads the trade table from the Wash Sale Tracker sheet and replaces the current app data</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="lotDialog" class="sheet">
+    <form id="lotForm" class="sheet-content">
+      <div class="sheet-head">
+        <h3 id="lotDialogTitle">Add Buy Lot</h3>
+      </div>
+      <input type="hidden" id="lotSleeve">
+
+      <label>Ticker
+        <input id="lotTicker" required>
+      </label>
+      <label>Buy Date
+        <input id="lotBuyDate" type="date" required>
+      </label>
+      <label>Shares Bought
+        <input id="lotShares" type="number" min="0.0001" step="0.0001" required>
+      </label>
+      <label>Cost / Share
+        <input id="lotCost" type="number" min="0.0001" step="0.0001" required>
+      </label>
+      <label>Note
+        <input id="lotNote">
+      </label>
+
+      <div class="sheet-actions">
+        <button type="button" id="cancelLot" class="secondary-btn">Cancel</button>
+        <button type="submit" class="primary-btn">Save Buy</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="saleDialog" class="sheet">
+    <form id="saleForm" class="sheet-content">
+      <div class="sheet-head">
+        <h3>Record Sale</h3>
+        <p id="saleContext" class="muted"></p>
+      </div>
+      <input type="hidden" id="saleLotId">
+
+      <label>Sell Date
+        <input id="saleDate" type="date" required>
+      </label>
+      <label>Shares Sold
+        <input id="saleShares" type="number" min="0.0001" step="0.0001" required>
+      </label>
+      <label>Sale Price / Share
+        <input id="salePrice" type="number" min="0.0001" step="0.0001" required>
+      </label>
+
+      <div class="sheet-actions">
+        <button type="button" id="cancelSale" class="secondary-btn">Cancel</button>
+        <button type="submit" class="primary-btn">Save Sale</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detailDialog" class="sheet">
+    <div class="sheet-content details">
+      <div class="sheet-head">
+        <h3 id="detailTitle">Lot Details</h3>
+      </div>
+      <div id="detailBody"></div>
+      <div class="sheet-actions">
+        <button type="button" id="closeDetail" class="primary-btn">Done</button>
+      </div>
+    </div>
+  </dialog>
+
+    <dialog id="overviewDialog" class="sheet">
+    <div class="sheet-content details">
+      <div class="sheet-head">
+        <h3 id="overviewTitle">Lot</h3>
+      </div>
+      <div id="overviewBody"></div>
+      <div id="overviewActions" class="sheet-actions"></div>
+    </div>
+  </dialog>
+
+<dialog id="infoDialog" class="sheet">
+    <div class="sheet-content">
+      <div class="sheet-head">
+        <h3>How this app works</h3>
+      </div>
+      <div class="info-list">
+        <p><strong>Main screen:</strong> one-line lot rows grouped by sleeve.</p>
+        <p><strong>Tap a lot:</strong> open a compact lot summary. Use Details for the full extended view.</p>
+        <p><strong>Partial sale:</strong> the app splits the lot automatically into a sold slice and remaining open slice.</p>
+        <p><strong>Wash Review:</strong> only actual wash-sale rows appear there.</p>
+      </div>
+      <div class="sheet-actions">
+        <button type="button" id="closeInfo" class="primary-btn">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
