@@ -1,3 +1,5 @@
+const APP_VERSION = "v6";
+
 const STORE_KEY = "sale-tracker-pwa-v5";
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
@@ -592,7 +594,34 @@ document.getElementById("importXlsx").addEventListener("change", async (e) => {
   }
 });
 
-if("serviceWorker" in navigator){
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+async function registerServiceWorker(){
+  if(!("serviceWorker" in navigator)) return;
+  try{
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if(refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+
+    const reg = await navigator.serviceWorker.register(`./sw.js?${APP_VERSION}`);
+    reg.update().catch(() => {});
+
+    const promptForRefresh = (worker) => {
+      if(!worker) return;
+      worker.addEventListener("statechange", () => {
+        if(worker.state === "installed" && navigator.serviceWorker.controller){
+          worker.postMessage({type:"SKIP_WAITING"});
+        }
+      });
+    };
+
+    promptForRefresh(reg.installing);
+    reg.addEventListener("updatefound", () => promptForRefresh(reg.installing));
+  } catch(err){
+    console.warn("Service worker registration failed", err);
+  }
 }
+
+window.addEventListener("load", registerServiceWorker);
 render();

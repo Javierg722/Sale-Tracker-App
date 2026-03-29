@@ -1,7 +1,8 @@
 {
   "name": "Sale Tracker",
   "short_name": "Sale Tracker",
-  "start_url": "./index.html",
+  "start_url": "./index.html?v=6",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f5f7fb",
   "theme_color": "#234a73",

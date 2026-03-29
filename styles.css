@@ -113,3 +113,6 @@ input{
 @media (max-width:700px){
   .summary-grid{grid-template-columns:1fr}
 }
+
+
+.build-version{margin:.25rem 0 0;color:#5d7287;font-size:.78rem;font-weight:600;}

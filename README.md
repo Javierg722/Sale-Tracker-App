@@ -37,3 +37,10 @@ The app builds a fresh copy of the included `Sale Tracker.xlsx` template, clears
 - Spreadsheet export creates a new workbook download from the included template.
 - The app still calculates its own wash-review view from the imported lots and sales.
 - JSON import is still available for app-only recovery if needed.
+
+
+## Cache-safe updates
+- This build uses service worker cache version **v6**.
+- Old caches are removed automatically when the new build loads.
+- For future app updates, bump the version in `sw.js`, `manifest.webmanifest`, and `app.js`.
+- When checking a freshly deployed build on GitHub Pages, opening the site with `?v=7` style query strings can still help force a clean fetch.
