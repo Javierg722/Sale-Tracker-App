@@ -1,7 +1,7 @@
-const APP_VERSION = "v19";
+const APP_VERSION = "v20";
 
-const STORE_KEY = "sale-tracker-pwa-v19";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v20";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -113,7 +113,7 @@ function rowsForExport(){
         salePricePerShare: sale.salePricePerShare,
         sharesRemaining: 0,
         note: lot.note || "",
-        lotIdText: getDisplayLotId(lot)
+        lotIdText: worksheetLotIdText(lot.ticker, lot.buyDate, lot.costPerShare) || getDisplayLotId(lot)
       });
     }
     if((lot.sharesRemaining || 0) > 0 || !sales.length){
@@ -127,7 +127,7 @@ function rowsForExport(){
         salePricePerShare: null,
         sharesRemaining: lot.sharesRemaining || lot.sharesBought,
         note: lot.note || "",
-        lotIdText: getDisplayLotId(lot)
+        lotIdText: worksheetLotIdText(lot.ticker, lot.buyDate, lot.costPerShare) || getDisplayLotId(lot)
       });
     }
   }
@@ -161,7 +161,7 @@ async function buildExportWorkbook(){
       overwriteCell(sheet, `F${excelRow}`, numberCell(row.salePricePerShare));
       overwriteCell(sheet, `G${excelRow}`, numberCell(row.sharesRemaining));
       overwriteCell(sheet, `L${excelRow}`, textCell(row.lotIdText));
-      overwriteCell(sheet, `R${excelRow}`, textCell(row.note));
+      overwriteCell(sheet, `R${excelRow}`, blankCell());
     });
   }
 
@@ -170,6 +170,28 @@ async function buildExportWorkbook(){
   return workbook;
 }
 
+
+
+function worksheetPriceToken(costPerShare){
+  const n = toNumber(costPerShare);
+  if(n === null) return "";
+  return String(Math.round(n * 1000000));
+}
+function worksheetLotIdText(ticker, buyDate, costPerShare){
+  const upperTicker = String(ticker || "").trim().toUpperCase();
+  const isoDate = dateToIso(buyDate);
+  const dateKey = isoDate ? isoDate.replace(/-/g, "") : "";
+  const priceKey = worksheetPriceToken(costPerShare);
+  if(!upperTicker || !dateKey || !priceKey) return "";
+  return `${upperTicker}-${dateKey}-${priceKey}`;
+}
+function normalizeLotIdText(rawText, ticker, buyDate, costPerShare){
+  const stable = worksheetLotIdText(ticker, buyDate, costPerShare);
+  const text = String(rawText || "").trim();
+  if(!text) return stable;
+  if(/^[A-Z]+-\d{8}-R\d+$/i.test(text)) return stable;
+  return text;
+}
 
 function normalizeLot(raw, index){
   const ticker = String(raw?.ticker || "").trim().toUpperCase();
@@ -187,7 +209,7 @@ function normalizeLot(raw, index){
     costPerShare,
     sharesRemaining,
     parentLotId: raw?.parentLotId ? String(raw.parentLotId) : null,
-    lotIdText: raw?.lotIdText ? String(raw.lotIdText) : "",
+    lotIdText: normalizeLotIdText(raw?.lotIdText, ticker, buyDate, costPerShare),
     importedBasisAdjustmentIn: toNumber(raw?.importedBasisAdjustmentIn) || 0,
     importedAdjustedCostPerShare: toNumber(raw?.importedAdjustedCostPerShare),
     note: raw?.note ? String(raw.note) : ""
@@ -243,7 +265,7 @@ function seedIfEmpty(){
 function salesForLot(lotId){ return state.sales.filter(s => s.lotId===lotId).sort((a,b)=>a.sellDate.localeCompare(b.sellDate)); }
 
 function getDisplayLotId(lot){
-  return lot.lotIdText || `${lot.ticker}-${shortDateKey(lot.buyDate)}-R${shortId(lot.id)}`;
+  return normalizeLotIdText(lot.lotIdText, lot.ticker, lot.buyDate, lot.costPerShare);
 }
 function hasAdjustedBasis(row){
   if(typeof row.adjustedCostPerShare === "number" && typeof row.costPerShare === "number"){
@@ -943,7 +965,8 @@ function parseWorkbookState(workbook){
       const sellDate = dateToIso(row[4]);
       const salePricePerShare = toNumber(row[5]);
       const sharesRemaining = toNumber(row[6]);
-      const lotIdText = row[11] ? String(row[11]).trim() : "";
+      const rawLotIdText = row[11] ? String(row[11]).trim() : "";
+      const lotIdText = normalizeLotIdText(rawLotIdText, ticker, buyDate, costPerShare);
       const sharesSold = toNumber(row[12]);
       const basisAdjustmentIn = toNumber(row[20]) || 0;
       const adjustedCostPerShare = toNumber(row[22]);
@@ -951,7 +974,7 @@ function parseWorkbookState(workbook){
 
       if(!ticker || !buyDate || sharesBought === null || costPerShare === null || sharesRemaining === null) continue;
 
-      const groupKey = lotIdText || `xlsx-row-${i+1}`;
+      const groupKey = `${lotIdText}||${ticker}||${buyDate}||${worksheetPriceToken(costPerShare)}`;
       if(!grouped.has(groupKey)){
         grouped.set(groupKey, {
           id: `xlsx-${groupKey.replace(/[^A-Za-z0-9_-]/g, "_")}`,
@@ -959,7 +982,7 @@ function parseWorkbookState(workbook){
           sleeve: inferSleeve(ticker),
           buyDate,
           costPerShare,
-          lotIdText: groupKey,
+          lotIdText,
           sharesBoughtCandidates: [],
           remainingCandidates: [],
           noteParts: [],
@@ -1093,10 +1116,11 @@ document.getElementById("lotForm").addEventListener("submit", (e) => {
       sharesBought,
       costPerShare,
       note,
+      lotIdText: worksheetLotIdText(ticker,buyDate,costPerShare),
       sharesRemaining: Math.max(0, sharesBought - soldShares)
     };
   } else {
-    state.lots.push({id:uid(),ticker,sleeve,buyDate,sharesBought,costPerShare,sharesRemaining:sharesBought,parentLotId:null,note});
+    state.lots.push({id:uid(),ticker,sleeve,buyDate,sharesBought,costPerShare,sharesRemaining:sharesBought,parentLotId:null,lotIdText: worksheetLotIdText(ticker,buyDate,costPerShare),note});
   }
   sortLots();
   saveState();
