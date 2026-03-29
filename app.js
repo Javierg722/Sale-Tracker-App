@@ -538,7 +538,7 @@ function renderLotCards(target, rows){
     <article class="lot-row" data-lot-id="${r.id}" role="button" tabindex="0" aria-label="Open ${r.ticker} lot">
       <div class="lot-row-main">
         <div class="lot-row-left">
-          <div class="lot-row-title">${r.ticker} - ${dateFmt(r.buyDate)} - ${num(r.sharesRemaining)} remaining</div>
+          <div class="lot-row-title">${r.ticker}<span class="lot-row-inline-meta"> - ${dateFmt(r.buyDate)} - ${num(r.sharesRemaining)} remaining</span></div>
           <div class="lot-row-sub">${r.lotIdText}</div>
         </div>
         <div class="lot-row-right">

@@ -1,3 +1,3 @@
-# Sale Tracker PWA v15
+# Sale Tracker PWA v16
 
-v15 update from v14: row line/order polish, left-aligned export button, and all-lots summary font sizing.
+v16 update from v14: row line/order polish, left-aligned export button, and all-lots summary font sizing.
