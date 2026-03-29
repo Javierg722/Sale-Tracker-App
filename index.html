@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Sale Tracker">
   <title>Sale Tracker</title>
-  <meta name="sale-tracker-version" content="v8">
-  <link rel="manifest" href="manifest.webmanifest?v=8">
+  <meta name="sale-tracker-version" content="v9">
+  <link rel="manifest" href="manifest.webmanifest?v=9">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +17,7 @@
     <div>
       <h1>Sale Tracker</h1>
       <p>Lot-based tracking built for iPhone</p>
-      <p class="build-version">Build v8</p>
+      <p class="build-version">Build v9</p>
     </div>
     <button id="infoBtn" class="icon-btn" aria-label="Info">?</button>
   </header>
@@ -30,18 +30,18 @@
 
   <main class="main">
     <section id="trackerTab" class="panel active">
-      <div class="summary-grid">
+      <div class="summary-grid combined-summary">
         <div class="summary-card">
-          <div class="summary-title">U.S.</div>
-          <button class="summary-metric summary-filter" data-sleeve="U.S." data-bucket="open" type="button"><span>Open lots</span><strong id="usOpenLots">0</strong></button>
-          <button class="summary-metric summary-filter" data-sleeve="U.S." data-bucket="closed" type="button"><span>Closed lots</span><strong id="usClosedLots">0</strong></button>
-          <button class="summary-metric summary-filter" data-sleeve="U.S." data-bucket="wash" type="button"><span>Wash sales</span><strong id="usWashCount">0</strong></button>
-        </div>
-        <div class="summary-card">
-          <div class="summary-title">International</div>
-          <button class="summary-metric summary-filter" data-sleeve="International" data-bucket="open" type="button"><span>Open lots</span><strong id="intlOpenLots">0</strong></button>
-          <button class="summary-metric summary-filter" data-sleeve="International" data-bucket="closed" type="button"><span>Closed lots</span><strong id="intlClosedLots">0</strong></button>
-          <button class="summary-metric summary-filter" data-sleeve="International" data-bucket="wash" type="button"><span>Wash sales</span><strong id="intlWashCount">0</strong></button>
+          <div class="summary-title">All Lots</div>
+          <button type="button" class="summary-metric filter-toggle" data-filter="open">
+            <span>Open lots</span><strong id="totalOpenLots">0</strong>
+          </button>
+          <button type="button" class="summary-metric filter-toggle" data-filter="closed">
+            <span>Closed lots</span><strong id="totalClosedLots">0</strong>
+          </button>
+          <button type="button" class="summary-metric filter-toggle" data-filter="wash">
+            <span>Wash sales</span><strong id="totalWashCount">0</strong>
+          </button>
         </div>
       </div>
 

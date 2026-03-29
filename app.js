@@ -1,6 +1,7 @@
-const APP_VERSION = "v8";
+const APP_VERSION = "v9";
 
-const STORE_KEY = "sale-tracker-pwa-v8";
+const STORE_KEY = "sale-tracker-pwa-v9";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v8", "sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -10,13 +11,31 @@ const intlTickers = new Set(["VXUS","IXUS","SCHF","FTIHX"]);
 const DEFAULT_STATE = {"lots":[{"id":"row-18","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":580.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-19","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":615.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-20","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":580.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-21","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":30.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-22","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":585.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-23","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":562.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-24","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":580.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-25","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":580.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-26","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":351.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-27","ticker":"ITOT","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.883,"costPerShare":150.63,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-28","ticker":"ITOT","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":143.0,"costPerShare":146.76,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-29","ticker":"SCHB","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.872,"costPerShare":25.95183486238532,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-30","ticker":"SCHB","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":813.0,"costPerShare":25.95,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-31","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-10-30","sharesBought":1110.0,"costPerShare":30.53,"sharesRemaining":1110.0,"parentLotId":null,"note":""},{"id":"row-32","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.251,"costPerShare":331.8326693227092,"sharesRemaining":0.251,"parentLotId":null,"note":""},{"id":"row-33","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":212.0,"costPerShare":331.8,"sharesRemaining":212.0,"parentLotId":null,"note":""},{"id":"row-34","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-18","sharesBought":0.993,"costPerShare":614.7331319234642,"sharesRemaining":0.993,"parentLotId":null,"note":""},{"id":"row-35","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-18","sharesBought":40.0,"costPerShare":614.735,"sharesRemaining":40.0,"parentLotId":null,"note":""},{"id":"row-36","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-20","sharesBought":34.0,"costPerShare":602.785,"sharesRemaining":34.0,"parentLotId":null,"note":""},{"id":"row-37","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-20","sharesBought":0.135,"costPerShare":602.8148148148148,"sharesRemaining":0.135,"parentLotId":null,"note":""},{"id":"row-38","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-27","sharesBought":0.736,"costPerShare":314.3478260869566,"sharesRemaining":0.736,"parentLotId":null,"note":""},{"id":"row-39","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-27","sharesBought":63.0,"costPerShare":314.35,"sharesRemaining":63.0,"parentLotId":null,"note":""},{"id":"row-381","ticker":"IXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":157.003,"costPerShare":88.55,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-382","ticker":"IXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":0.997,"costPerShare":93.56,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-383","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":178.0,"costPerShare":79.01988764044944,"sharesRemaining":178.0,"parentLotId":null,"note":""},{"id":"row-384","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":0.182,"costPerShare":79.01098901098902,"sharesRemaining":0.182,"parentLotId":null,"note":""},{"id":"row-385","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-20","sharesBought":177.0,"costPerShare":74.63988700564971,"sharesRemaining":177.0,"parentLotId":null,"note":""},{"id":"row-386","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-20","sharesBought":0.98,"costPerShare":74.63265306122449,"sharesRemaining":0.98,"parentLotId":null,"note":""}],"sales":[{"id":"sale-18","lotId":"row-18","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.15},{"id":"sale-19","lotId":"row-19","sellDate":"2026-03-09","sharesSold":615.0,"salePricePerShare":38.15},{"id":"sale-20","lotId":"row-20","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.15},{"id":"sale-21","lotId":"row-21","sellDate":"2026-03-09","sharesSold":30.0,"salePricePerShare":38.0},{"id":"sale-22","lotId":"row-22","sellDate":"2026-03-09","sharesSold":585.0,"salePricePerShare":38.0},{"id":"sale-23","lotId":"row-23","sellDate":"2026-03-09","sharesSold":562.0,"salePricePerShare":38.0},{"id":"sale-24","lotId":"row-24","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.0},{"id":"sale-25","lotId":"row-25","sellDate":"2026-03-17","sharesSold":580.0,"salePricePerShare":37.79},{"id":"sale-26","lotId":"row-26","sellDate":"2026-03-17","sharesSold":351.0,"salePricePerShare":37.79},{"id":"sale-27","lotId":"row-27","sellDate":"2026-03-20","sharesSold":0.883,"salePricePerShare":142.93},{"id":"sale-28","lotId":"row-28","sellDate":"2026-03-20","sharesSold":143.0,"salePricePerShare":142.93},{"id":"sale-29","lotId":"row-29","sellDate":"2026-03-27","sharesSold":0.872,"salePricePerShare":24.61009174311927},{"id":"sale-30","lotId":"row-30","sellDate":"2026-03-27","sharesSold":813.0,"salePricePerShare":24.60029520295203},{"id":"sale-381","lotId":"row-381","sellDate":"2026-03-20","sharesSold":157.003,"salePricePerShare":83.55},{"id":"sale-382","lotId":"row-382","sellDate":"2026-03-20","sharesSold":0.997,"salePricePerShare":83.55}]};
 
 let state = loadState();
-const trackerFilters = new Set();
 seedIfEmpty();
 
 function uid(){ return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2); }
 function createEmptyState(){ return {lots:[],sales:[]}; }
 function deepClone(value){ return JSON.parse(JSON.stringify(value)); }
-function loadState(){ try { return normalizeState(JSON.parse(localStorage.getItem(STORE_KEY)) || createEmptyState()); } catch { return createEmptyState(); } }
+function loadState(){
+  try {
+    const current = localStorage.getItem(STORE_KEY);
+    if(current) return normalizeState(JSON.parse(current));
+    for(const legacyKey of LEGACY_STORE_KEYS){
+      const legacy = localStorage.getItem(legacyKey);
+      if(legacy){
+        const parsed = normalizeState(JSON.parse(legacy));
+        localStorage.setItem(STORE_KEY, JSON.stringify(parsed));
+        return parsed;
+      }
+    }
+    return createEmptyState();
+  } catch {
+    return createEmptyState();
+  }
+}
+
+const activeFilters = new Set();
+
 function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 function inferSleeve(t){ return intlTickers.has((t||"").toUpperCase().trim()) ? "International" : "U.S."; }
 function currency(v){ return typeof v === "number" ? v.toLocaleString(undefined,{style:"currency",currency:"USD"}) : ""; }
@@ -269,31 +288,8 @@ function computedRows(){
   });
 }
 
-function rowBucket(r){
-  if(r.washSale === "Yes") return "wash";
-  if(r.dataEntryStatus === "Closed lot") return "closed";
-  if(r.dataEntryStatus === "Open lot" || r.dataEntryStatus === "Partially sold") return "open";
-  return "other";
-}
-
-function filterKey(sleeve, bucket){
-  return `${sleeve}|${bucket}`;
-}
-
-function rowMatchesActiveFilters(r){
-  if(!trackerFilters.size) return true;
-  return trackerFilters.has(filterKey(r.sleeve, rowBucket(r)));
-}
-
-function toggleTrackerFilter(sleeve, bucket){
-  const key = filterKey(sleeve, bucket);
-  if(trackerFilters.has(key)) trackerFilters.delete(key);
-  else trackerFilters.add(key);
-  render();
-}
-
-function sleeveSummary(sleeve){
-  const rows = computedRows().filter(r => r.sleeve === sleeve);
+function overallSummary(){
+  const rows = computedRows();
   return {
     openLots: rows.filter(r => r.dataEntryStatus === "Open lot" || r.dataEntryStatus === "Partially sold").length,
     closedLots: rows.filter(r => r.dataEntryStatus === "Closed lot").length,
@@ -301,35 +297,54 @@ function sleeveSummary(sleeve){
   };
 }
 
+function matchesFilter(row, filterKey){
+  if(filterKey === "open"){
+    return row.dataEntryStatus === "Open lot" || row.dataEntryStatus === "Partially sold";
+  }
+  if(filterKey === "closed"){
+    return row.dataEntryStatus === "Closed lot";
+  }
+  if(filterKey === "wash"){
+    return row.washSale === "Yes";
+  }
+  return false;
+}
+
+function rowPassesActiveFilters(row){
+  if(!activeFilters.size) return true;
+  for(const filterKey of activeFilters){
+    if(matchesFilter(row, filterKey)) return true;
+  }
+  return false;
+}
+
+function applyFilterStyles(){
+  document.querySelectorAll(".filter-toggle").forEach(btn => {
+    btn.classList.toggle("active", activeFilters.has(btn.dataset.filter));
+  });
+}
+
+
 function render(){
   const rows = computedRows();
-  const usRows = rows.filter(r => r.sleeve === "U.S." && rowMatchesActiveFilters(r));
-  const intlRows = rows.filter(r => r.sleeve === "International" && rowMatchesActiveFilters(r));
+  const usRows = rows.filter(r => r.sleeve === "U.S." && rowPassesActiveFilters(r));
+  const intlRows = rows.filter(r => r.sleeve === "International" && rowPassesActiveFilters(r));
   const washRows = rows.filter(r => r.washSale === "Yes" && typeof r.realizedGainLoss === "number" && r.realizedGainLoss < 0);
 
-  const usSummary = sleeveSummary("U.S.");
-  const intlSummary = sleeveSummary("International");
-  document.getElementById("usOpenLots").textContent = usSummary.openLots;
-  document.getElementById("usClosedLots").textContent = usSummary.closedLots;
-  document.getElementById("usWashCount").textContent = usSummary.washSaleCount;
-  document.getElementById("intlOpenLots").textContent = intlSummary.openLots;
-  document.getElementById("intlClosedLots").textContent = intlSummary.closedLots;
-  document.getElementById("intlWashCount").textContent = intlSummary.washSaleCount;
+  const summary = overallSummary();
+  document.getElementById("totalOpenLots").textContent = summary.openLots;
+  document.getElementById("totalClosedLots").textContent = summary.closedLots;
+  document.getElementById("totalWashCount").textContent = summary.washSaleCount;
 
-  document.querySelectorAll(".summary-filter").forEach(btn => {
-    const key = filterKey(btn.dataset.sleeve, btn.dataset.bucket);
-    btn.classList.toggle("active", trackerFilters.has(key));
-  });
-
-  renderLotCards(document.getElementById("usList"), usRows, "U.S.");
-  renderLotCards(document.getElementById("intlList"), intlRows, "International");
+  applyFilterStyles();
+  renderLotCards(document.getElementById("usList"), usRows);
+  renderLotCards(document.getElementById("intlList"), intlRows);
   renderWashCards(document.getElementById("washList"), washRows);
 }
 
-function renderLotCards(target, rows, sleeveLabel){
+function renderLotCards(target, rows){
   if(!rows.length){
-    const hasFilters = trackerFilters.size > 0;
-    target.innerHTML = `<div class="empty-state">${hasFilters ? `No ${sleeveLabel} lots match the selected filters.` : `No lots in this sleeve.`}</div>`;
+    target.innerHTML = `<div class="empty-state">No lots match the current filters.</div>`;
     return;
   }
   target.innerHTML = rows.map(r => `
@@ -343,6 +358,9 @@ function renderLotCards(target, rows, sleeveLabel){
           <span class="badge status">${r.dataEntryStatus}</span>
           ${r.washSale === "Yes" ? `<span class="badge wash">Wash</span>` : ``}
         </div>
+      </div>
+      <div class="lot-row-actions">
+        ${r.sharesRemaining > 0 ? `<button class="primary-btn action-btn" data-action="sale" data-lot-id="${r.id}">Record Sale</button>` : ``}
       </div>
     </article>
   `).join("");
@@ -540,9 +558,20 @@ document.querySelectorAll(".tab").forEach(btn => {
 });
 
 document.addEventListener("click", (e) => {
-  const filterBtn = e.target.closest(".summary-filter");
+  const filterBtn = e.target.closest(".filter-toggle");
   if(filterBtn){
-    toggleTrackerFilter(filterBtn.dataset.sleeve, filterBtn.dataset.bucket);
+    const key = filterBtn.dataset.filter;
+    if(activeFilters.has(key)) activeFilters.delete(key);
+    else activeFilters.add(key);
+    render();
+    return;
+  }
+  const actionBtn = e.target.closest(".action-btn");
+  if(actionBtn){
+    e.stopPropagation();
+    const lotId = actionBtn.dataset.lotId;
+    if(actionBtn.dataset.action === "details") openDetail(lotId);
+    if(actionBtn.dataset.action === "sale") openSaleDialog(lotId);
     return;
   }
   const row = e.target.closest(".lot-row");
@@ -659,34 +688,19 @@ document.getElementById("importXlsx").addEventListener("change", async (e) => {
   }
 });
 
-async function registerServiceWorker(){
+async function disableServiceWorkers(){
   if(!("serviceWorker" in navigator)) return;
   try{
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if(refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
-
-    const reg = await navigator.serviceWorker.register(`./sw.js?${APP_VERSION}`);
-    reg.update().catch(() => {});
-
-    const promptForRefresh = (worker) => {
-      if(!worker) return;
-      worker.addEventListener("statechange", () => {
-        if(worker.state === "installed" && navigator.serviceWorker.controller){
-          worker.postMessage({type:"SKIP_WAITING"});
-        }
-      });
-    };
-
-    promptForRefresh(reg.installing);
-    reg.addEventListener("updatefound", () => promptForRefresh(reg.installing));
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(reg => reg.unregister()));
+    if(window.caches && caches.keys){
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.filter(name => name.includes("sale-tracker-pwa")).map(name => caches.delete(name)));
+    }
   } catch(err){
-    console.warn("Service worker registration failed", err);
+    console.warn("Service worker cleanup failed", err);
   }
 }
 
-window.addEventListener("load", registerServiceWorker);
+window.addEventListener("load", disableServiceWorkers);
 render();
