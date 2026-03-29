@@ -1,7 +1,7 @@
-const APP_VERSION = "v29";
+const APP_VERSION = "v30";
 
-const STORE_KEY = "sale-tracker-pwa-v29";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v30";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -820,7 +820,8 @@ function renderYtdCapitalSummaryTable(){
   const target = document.getElementById("ytdCapitalSummaryTable");
   if(!target) return;
   const summary = ytdCapitalSummary();
-  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact ytd-table ytd-stacked"><thead><tr><th>Year</th><th>Category</th><th>Gains</th><th>Losses</th><th>Net</th></tr></thead><tbody><tr><td>${summary.year}</td><td title="Short-Term">ST</td><td>${currency(summary.shortTermGains)}</td><td>${currency(summary.shortTermLosses)}</td><td>${currency(summary.shortTermNet)}</td></tr><tr><td>${summary.year}</td><td title="Long-Term">LT</td><td>${currency(summary.longTermGains)}</td><td>${currency(summary.longTermLosses)}</td><td>${currency(summary.longTermNet)}</td></tr><tr class="total-row"><td>${summary.year}</td><td>Total</td><td>—</td><td>—</td><td>${currency(summary.totalNet)}</td></tr></tbody></table></div>`;
+  const totalClass = summary.totalNet > 0 ? "total-positive" : (summary.totalNet < 0 ? "total-negative" : "");
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact ytd-table ytd-stacked"><thead><tr><th>Year</th><th>Category</th><th>Gains</th><th>Losses</th><th>Net</th></tr></thead><tbody><tr><td>${summary.year}</td><td>Short-Term</td><td>${currency(summary.shortTermGains)}</td><td>${currency(summary.shortTermLosses)}</td><td>${currency(summary.shortTermNet)}</td></tr><tr><td>${summary.year}</td><td>Long-Term</td><td>${currency(summary.longTermGains)}</td><td>${currency(summary.longTermLosses)}</td><td>${currency(summary.longTermNet)}</td></tr><tr class="total-row"><td>${summary.year}</td><td>Total</td><td>—</td><td>—</td><td class="${totalClass}">${currency(summary.totalNet)}</td></tr></tbody></table></div>`;
 }
 
 
