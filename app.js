@@ -1,7 +1,7 @@
-const APP_VERSION = "v26";
+const APP_VERSION = "v27";
 
-const STORE_KEY = "sale-tracker-pwa-v26";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v27";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -35,6 +35,7 @@ function loadState(){
 }
 
 const activeFilters = new Set();
+let activeYearFilter = "all";
 
 function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 function inferSleeve(t){ return intlTickers.has((t||"").toUpperCase().trim()) ? "International" : "U.S."; }
@@ -637,9 +638,10 @@ function computeCalculatedModel(){
       for(const [replacementId, matchedShares] of replacementMap.entries()){
         groupedReplacements.push(`${displayLotIdById(replacementId)}${matchedShares ? ` (${num(matchedShares)})` : ""}`);
       }
+      const unmatchedWashShares = Math.max(0, (lotStats.sharesSold || 0) - (lotStats.candidateMatchedShares || 0));
       matchStatus = groupedReplacements.length
-        ? `Wash loss carried into replacement lot basis: ${groupedReplacements.join(" & ")}`
-        : (appliedReplacementLotIds.length ? `Wash loss carried into replacement lot basis: ${appliedReplacementLotIds.map(id => displayLotIdById(id)).join(" & ")}` : lotStats.matchStatus);
+        ? `Wash loss carried into replacement lot basis: ${groupedReplacements.join(" & ")} • Unmatched wash shares: ${num(unmatchedWashShares)}`
+        : (appliedReplacementLotIds.length ? `Wash loss carried into replacement lot basis: ${appliedReplacementLotIds.map(id => displayLotIdById(id)).join(" & ")} • Unmatched wash shares: ${num(unmatchedWashShares)}` : lotStats.matchStatus);
     }
 
     return {
@@ -764,7 +766,7 @@ function countdownSummaryRows(){
     byTicker.set(ticker, existing);
   }
   return [...byTicker.values()]
-    .filter(row => !!row.rebuyDate)
+    .filter(row => !!row.rebuyDate && (row.daysUntilRebuy === "" || Number(row.daysUntilRebuy) >= 0))
     .sort((a,b) => (a.recentBuyEndsDate || "").localeCompare(b.recentBuyEndsDate || "") || a.ticker.localeCompare(b.ticker));
 }
 
@@ -811,7 +813,7 @@ function renderCountdownSummaryTable(){
     target.innerHTML = `<div class="empty-mini">No tickers currently show Recent Buy = Yes.</div>`;
     return;
   }
-  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact countdown-table"><thead><tr><th>Ticker</th><th>Latest Loss Sale</th><th>Rebuy Date</th><th>Recent Buy Ends</th><th>Days Left</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${row.latestLossSaleDate ? dateFmt(row.latestLossSaleDate) : ""}</td><td>${dateFmt(row.rebuyDate)}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${row.daysUntilRebuy === "" ? "" : row.daysUntilRebuy}</td></tr>`).join("")}</tbody></table></div>`;
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact countdown-table"><thead><tr><th>Ticker</th><th>Rebuy Date</th><th>Latest Loss Sale</th><th>Recent Buy Ends</th><th>Days Left</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${dateFmt(row.rebuyDate)}</td><td>${row.latestLossSaleDate ? dateFmt(row.latestLossSaleDate) : ""}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${row.daysUntilRebuy === "" ? "" : row.daysUntilRebuy}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
 function renderYtdCapitalSummaryTable(){
@@ -819,6 +821,39 @@ function renderYtdCapitalSummaryTable(){
   if(!target) return;
   const summary = ytdCapitalSummary();
   target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact ytd-table ytd-stacked"><thead><tr><th>Year</th><th>Category</th><th>Gains</th><th>Losses</th><th>Net</th></tr></thead><tbody><tr><td>${summary.year}</td><td>Short-Term</td><td>${currency(summary.shortTermGains)}</td><td>${currency(summary.shortTermLosses)}</td><td>${currency(summary.shortTermNet)}</td></tr><tr><td>${summary.year}</td><td>Long-Term</td><td>${currency(summary.longTermGains)}</td><td>${currency(summary.longTermLosses)}</td><td>${currency(summary.longTermNet)}</td></tr><tr class="total-row"><td>${summary.year}</td><td>Total</td><td>—</td><td>—</td><td>${currency(summary.totalNet)}</td></tr></tbody></table></div>`;
+}
+
+
+function rowYearBucket(row){
+  const saleDates = salesForLot(row.id).map(s => s.sellDate).filter(Boolean).sort();
+  if(saleDates.length){
+    const latestSaleDate = saleDates[saleDates.length - 1];
+    return String(latestSaleDate).slice(0,4);
+  }
+  return String(new Date().getFullYear());
+}
+
+function rowPassesYearFilter(row){
+  if(activeYearFilter === "all") return true;
+  return rowYearBucket(row) === String(activeYearFilter);
+}
+
+function renderYearFilterBar(){
+  const target = document.getElementById("yearFilterBar");
+  if(!target) return;
+  const years = ["all"];
+  for(let y = 2026; y <= 2041; y += 1) years.push(String(y));
+  target.innerHTML = years.map(year => {
+    const label = year === "all" ? "All" : year;
+    const active = activeYearFilter === year ? " active" : "";
+    return `<button type="button" class="year-filter-btn${active}" data-year-filter="${year}">${label}</button>`;
+  }).join("");
+  target.querySelectorAll("[data-year-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      activeYearFilter = btn.dataset.yearFilter;
+      render();
+    });
+  });
 }
 
 function overallSummary(){
@@ -860,9 +895,10 @@ function applyFilterStyles(){
 
 function render(){
   const rows = computedRows();
-  const usRows = rows.filter(r => r.sleeve === "U.S." && rowPassesActiveFilters(r));
-  const intlRows = rows.filter(r => r.sleeve === "International" && rowPassesActiveFilters(r));
-  const washRows = rows.filter(r => r.washSale === "Yes" && typeof r.realizedGainLoss === "number" && r.realizedGainLoss < 0);
+  const filteredRows = rows.filter(r => rowPassesYearFilter(r));
+  const usRows = filteredRows.filter(r => r.sleeve === "U.S." && rowPassesActiveFilters(r));
+  const intlRows = filteredRows.filter(r => r.sleeve === "International" && rowPassesActiveFilters(r));
+  const washRows = filteredRows.filter(r => r.washSale === "Yes" && typeof r.realizedGainLoss === "number" && r.realizedGainLoss < 0);
 
   const summary = overallSummary();
   document.getElementById("totalOpenLots").textContent = summary.openLots;
@@ -870,6 +906,7 @@ function render(){
   document.getElementById("totalWashCount").textContent = summary.washSaleCount;
 
   applyFilterStyles();
+  renderYearFilterBar();
   renderCountdownSummaryTable();
   renderYtdCapitalSummaryTable();
   renderLotCards(document.getElementById("usList"), usRows);

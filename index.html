@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Sale Tracker">
   <title>Sale Tracker</title>
-  <meta name="sale-tracker-version" content="v24">
-  <link rel="manifest" href="manifest.webmanifest?v=26">
+  <meta name="sale-tracker-version" content="v27">
+  <link rel="manifest" href="manifest.webmanifest?v=27">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +17,7 @@
     <div>
       <h1>Sale Tracker</h1>
       <p>Lot-based tracking built for iPhone</p>
-      <p class="build-version">Build v26</p>
+      <p class="build-version">Build v27</p>
     </div>
     <button id="infoBtn" class="icon-btn" aria-label="Info">?</button>
   </header>
@@ -46,14 +46,21 @@
       </div>
 
       <section class="hero-card summary-table-card">
-        <h2>Countdown Summary</h2>
-        <p class="muted summary-sub">Shows tickers with an active recent rebuy window.</p>
+        <h2>Wash Sale Countdown Summary</h2>
+        <p class="muted summary-sub">Shows tickers with an active recent rebuy window. Any ticker with a current recent-buy window can appear here, even if it is new to the portfolio.</p>
         <div id="countdownSummaryTable"></div>
       </section>
 
       <section class="hero-card summary-table-card">
         <h2>YTD Capital Summary</h2>
         <div id="ytdCapitalSummaryTable"></div>
+      </section>
+
+
+      <section class="hero-card summary-table-card">
+        <h2>Year Filter</h2>
+        <p class="muted summary-sub">Realized lots show in the year of the latest sale. Open lots stay in the current year until realized.</p>
+        <div id="yearFilterBar" class="year-filter-bar"></div>
       </section>
 
       <section class="sleeve-section">
