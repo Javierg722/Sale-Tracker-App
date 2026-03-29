@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Sale Tracker">
   <title>Sale Tracker</title>
-  <meta name="sale-tracker-version" content="v9">
-  <link rel="manifest" href="manifest.webmanifest?v=9">
+  <meta name="sale-tracker-version" content="v11">
+  <link rel="manifest" href="manifest.webmanifest?v=11">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +17,7 @@
     <div>
       <h1>Sale Tracker</h1>
       <p>Lot-based tracking built for iPhone</p>
-      <p class="build-version">Build v9</p>
+      <p class="build-version">Build v11</p>
     </div>
     <button id="infoBtn" class="icon-btn" aria-label="Info">?</button>
   </header>
@@ -44,6 +44,17 @@
           </button>
         </div>
       </div>
+
+      <section class="hero-card summary-table-card">
+        <h2>Countdown Summary</h2>
+        <p class="muted summary-sub">Shows tickers with an active recent rebuy window.</p>
+        <div id="countdownSummaryTable"></div>
+      </section>
+
+      <section class="hero-card summary-table-card">
+        <h2>YTD Capital Summary</h2>
+        <div id="ytdCapitalSummaryTable"></div>
+      </section>
 
       <section class="sleeve-section">
         <div class="section-head">
@@ -93,7 +104,7 @@
         <ul>
           <li>New buy = new lot</li>
           <li>Full sale = close the lot</li>
-          <li>Partial sale = split the lot into a sold slice and remaining open slice</li>
+          <li>Partial sale = keep one lot and add each sale to that lot&apos;s Sales History table</li>
           <li>Spreadsheet import reads the trade table from the Wash Sale Tracker sheet and replaces the current app data</li>
         </ul>
       </div>
@@ -185,7 +196,7 @@
       <div class="info-list">
         <p><strong>Main screen:</strong> one-line lot rows grouped by sleeve.</p>
         <p><strong>Tap a lot:</strong> open a compact lot summary. Use Details for the full extended view.</p>
-        <p><strong>Partial sale:</strong> the app splits the lot automatically into a sold slice and remaining open slice.</p>
+        <p><strong>Partial sale:</strong> the app keeps one purchase lot and adds each sale to a Sales History table inside that lot.</p>
         <p><strong>Wash Review:</strong> only actual wash-sale rows appear there.</p>
       </div>
       <div class="sheet-actions">

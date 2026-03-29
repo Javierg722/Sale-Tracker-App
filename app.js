@@ -1,7 +1,7 @@
-const APP_VERSION = "v9";
+const APP_VERSION = "v11";
 
-const STORE_KEY = "sale-tracker-pwa-v9";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v8", "sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v11";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v10", "sale-tracker-pwa-v9", "sale-tracker-pwa-v8", "sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -91,26 +91,47 @@ function overwriteCell(sheet, address, cell){
 }
 function clearEntryRange(sheet, startRow, endRow){
   for(let row = startRow; row <= endRow; row += 1){
-    for(const col of ["A","B","C","D","E","F","G","R"]){
+    for(const col of ["A","B","C","D","E","F","G","L","R"]){
       overwriteCell(sheet, `${col}${row}`, null);
     }
   }
 }
+
 function rowsForExport(){
-  return state.lots.map(lot => {
-    const sale = salesForLot(lot.id).sort((a,b)=>a.sellDate.localeCompare(b.sellDate))[0] || null;
-    return {
-      ticker: lot.ticker,
-      sleeve: lot.sleeve,
-      buyDate: lot.buyDate,
-      sharesBought: lot.sharesBought,
-      costPerShare: lot.costPerShare,
-      sellDate: sale?.sellDate || "",
-      salePricePerShare: sale?.salePricePerShare ?? null,
-      sharesRemaining: lot.sharesRemaining,
-      note: lot.note || ""
-    };
-  }).sort((a,b) => lotSort(a,b));
+  const exportRows = [];
+  const lots = [...state.lots].sort(lotSort);
+  for(const lot of lots){
+    const sales = salesForLot(lot.id);
+    for(const sale of sales){
+      exportRows.push({
+        ticker: lot.ticker,
+        sleeve: lot.sleeve,
+        buyDate: lot.buyDate,
+        sharesBought: sale.sharesSold,
+        costPerShare: lot.costPerShare,
+        sellDate: sale.sellDate,
+        salePricePerShare: sale.salePricePerShare,
+        sharesRemaining: 0,
+        note: lot.note || "",
+        lotIdText: getDisplayLotId(lot)
+      });
+    }
+    if((lot.sharesRemaining || 0) > 0 || !sales.length){
+      exportRows.push({
+        ticker: lot.ticker,
+        sleeve: lot.sleeve,
+        buyDate: lot.buyDate,
+        sharesBought: lot.sharesRemaining || lot.sharesBought,
+        costPerShare: lot.costPerShare,
+        sellDate: "",
+        salePricePerShare: null,
+        sharesRemaining: lot.sharesRemaining || lot.sharesBought,
+        note: lot.note || "",
+        lotIdText: getDisplayLotId(lot)
+      });
+    }
+  }
+  return exportRows.sort((a,b) => lotSort(a,b));
 }
 async function buildExportWorkbook(){
   const response = await fetch(TEMPLATE_WORKBOOK_PATH, { cache:"no-store" });
@@ -139,6 +160,7 @@ async function buildExportWorkbook(){
       overwriteCell(sheet, `E${excelRow}`, excelDateCell(row.sellDate));
       overwriteCell(sheet, `F${excelRow}`, numberCell(row.salePricePerShare));
       overwriteCell(sheet, `G${excelRow}`, numberCell(row.sharesRemaining));
+      overwriteCell(sheet, `L${excelRow}`, textCell(row.lotIdText));
       overwriteCell(sheet, `R${excelRow}`, textCell(row.note));
     });
   }
@@ -147,6 +169,7 @@ async function buildExportWorkbook(){
   writeRows(intlRows, INTL_START_ROW);
   return workbook;
 }
+
 
 function normalizeLot(raw, index){
   const ticker = String(raw?.ticker || "").trim().toUpperCase();
@@ -164,6 +187,9 @@ function normalizeLot(raw, index){
     costPerShare,
     sharesRemaining,
     parentLotId: raw?.parentLotId ? String(raw.parentLotId) : null,
+    lotIdText: raw?.lotIdText ? String(raw.lotIdText) : "",
+    importedBasisAdjustmentIn: toNumber(raw?.importedBasisAdjustmentIn) || 0,
+    importedAdjustedCostPerShare: toNumber(raw?.importedAdjustedCostPerShare),
     note: raw?.note ? String(raw.note) : ""
   };
 }
@@ -182,19 +208,88 @@ function normalizeSale(raw, index, lotIds){
   };
 }
 function normalizeState(raw){
-  const lots = Array.isArray(raw?.lots) ? raw.lots.map(normalizeLot).filter(Boolean) : [];
-  const lotIds = new Set(lots.map(l => l.id));
-  const sales = Array.isArray(raw?.sales) ? raw.sales.map((sale, idx) => normalizeSale(sale, idx, lotIds)).filter(Boolean) : [];
-  return {lots: lots.sort(lotSort), sales};
+  const parsedLots = Array.isArray(raw?.lots) ? raw.lots.map(normalizeLot).filter(Boolean) : [];
+  const originalLotMap = new Map(parsedLots.map(l => [l.id, l]));
+  const rootLotId = (lotId) => {
+    let current = originalLotMap.get(lotId);
+    while(current && current.parentLotId && originalLotMap.has(current.parentLotId)){
+      current = originalLotMap.get(current.parentLotId);
+    }
+    return current ? current.id : lotId;
+  };
+  const rootLots = parsedLots.filter(l => !l.parentLotId);
+  const rootIds = new Set(rootLots.map(l => l.id));
+  const remappedSales = [];
+  if(Array.isArray(raw?.sales)){
+    raw.sales.forEach((sale, idx) => {
+      const lotId = rootLotId(String(sale?.lotId || ""));
+      const normalized = normalizeSale({...sale, lotId}, idx, rootIds);
+      if(normalized) remappedSales.push(normalized);
+    });
+  }
+  return {
+    lots: rootLots.sort(lotSort),
+    sales: remappedSales.sort((a,b) => (a.sellDate || "").localeCompare(b.sellDate || ""))
+  };
 }
 
 function seedIfEmpty(){
+
   if(state.lots.length || state.sales.length) return;
   state = normalizeState(deepClone(DEFAULT_STATE));
   saveState();
 }
 
 function salesForLot(lotId){ return state.sales.filter(s => s.lotId===lotId).sort((a,b)=>a.sellDate.localeCompare(b.sellDate)); }
+
+function getDisplayLotId(lot){
+  return lot.lotIdText || `${lot.ticker}-${shortDateKey(lot.buyDate)}-R${shortId(lot.id)}`;
+}
+function hasAdjustedBasis(row){
+  if(typeof row.adjustedCostPerShare === "number" && typeof row.costPerShare === "number"){
+    if(Math.abs(row.adjustedCostPerShare - row.costPerShare) > 0.000001) return true;
+  }
+  return (row.basisAdjustmentIn || 0) > 0.000001;
+}
+function salesHistoryForLot(lot){
+  const sales = salesForLot(lot.id);
+  const rows = sales.map((sale) => {
+    const proceeds = sale.sharesSold * sale.salePricePerShare;
+    const gainLoss = sale.sharesSold * (sale.salePricePerShare - lot.costPerShare);
+    return {
+      type: "sale",
+      sellDate: sale.sellDate,
+      sharesSold: sale.sharesSold,
+      salePricePerShare: sale.salePricePerShare,
+      proceeds,
+      gainLoss
+    };
+  });
+  if((lot.sharesRemaining || 0) > 0){
+    rows.push({
+      type: "open",
+      sellDate: "",
+      sharesSold: lot.sharesRemaining,
+      salePricePerShare: null,
+      proceeds: null,
+      gainLoss: null
+    });
+  }
+  return rows;
+}
+function salesHistoryTable(lot){
+  const rows = salesHistoryForLot(lot);
+  if(!rows.length){
+    return `<div class="empty-mini">No sale activity yet.</div>`;
+  }
+  const body = rows.map((row) => {
+    if(row.type === "open"){
+      return `<tr class="open-row"><td>Open shares</td><td>${num(row.sharesSold)}</td><td></td><td></td><td></td></tr>`;
+    }
+    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td></tr>`;
+  }).join("");
+  return `<div class="table-wrap"><table class="sales-table"><thead><tr><th>Sale Date</th><th>Shares</th><th>Sale Price</th><th>Proceeds</th><th>Gain / (Loss)</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
 
 function realizedForLot(lot){
   const sales = salesForLot(lot.id);
@@ -259,9 +354,11 @@ function computedRows(){
     const realized = realizedForLot(lot);
     const wash = computeWash(lot);
     const totalCost = lot.sharesBought * lot.costPerShare;
-    const basisAdjustmentIn = basisIn[lot.id] || 0;
+    const basisAdjustmentIn = (basisIn[lot.id] || 0) + (lot.importedBasisAdjustmentIn || 0);
     const adjustedTotalBasis = totalCost + basisAdjustmentIn;
-    const adjustedCostPerShare = lot.sharesBought ? adjustedTotalBasis / lot.sharesBought : 0;
+    const adjustedCostPerShare = typeof lot.importedAdjustedCostPerShare === "number"
+      ? lot.importedAdjustedCostPerShare
+      : (lot.sharesBought ? adjustedTotalBasis / lot.sharesBought : 0);
     return {
       trackerRow: idx + 1,
       ...lot,
@@ -272,7 +369,7 @@ function computedRows(){
       sellDate: realized.sellDate,
       salePricePerShare: realized.salePricePerShare,
       washSale: wash.washSale ? "Yes" : "No",
-      lotIdText: `${lot.ticker}-${shortDateKey(lot.buyDate)}-R${shortId(lot.id)}`,
+      lotIdText: getDisplayLotId(lot),
       lossPerShare: wash.lossPerShare,
       candidateMatchedShares: wash.candidateMatchedShares,
       candidateReplacementCount: wash.candidateReplacementCount,
@@ -282,10 +379,75 @@ function computedRows(){
       basisAdjustmentIn,
       adjustedTotalBasis,
       adjustedCostPerShare,
+      hasAdjustedBasis: (typeof adjustedCostPerShare === "number" && Math.abs(adjustedCostPerShare - lot.costPerShare) > 0.000001) || basisAdjustmentIn > 0.000001,
       matchStatus: basisAdjustmentIn > 0 ? "Replacement lot receiving wash basis" : wash.matchStatus,
       dataEntryStatus: rowStatus(lot, realized)
     };
   });
+}
+
+
+function addDays(isoDate, days){
+  if(!isoDate) return "";
+  const dt = new Date(isoDate + "T00:00:00");
+  dt.setDate(dt.getDate() + days);
+  return dt.toISOString().slice(0,10);
+}
+function todayIso(){
+  const dt = new Date();
+  const local = new Date(dt.getTime() - dt.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,10);
+}
+function countdownSummaryRows(){
+  const rows = computedRows();
+  const byTicker = new Map();
+  for(const row of rows){
+    const ticker = row.ticker;
+    const sales = salesForLot(row.id);
+    if(!sales.length) continue;
+    const latestSaleDate = sales[sales.length-1].sellDate;
+    const rebuys = state.lots.filter(other => other.ticker === ticker && other.buyDate && latestSaleDate && daysBetween(latestSaleDate, other.buyDate) >= 0 && daysBetween(latestSaleDate, other.buyDate) <= 30).sort((a,b)=>(a.buyDate||"").localeCompare(b.buyDate||""));
+    if(!rebuys.length) continue;
+    const rebuyDate = rebuys[rebuys.length-1].buyDate;
+    const recentBuyEndsDate = addDays(rebuyDate, 30);
+    const counter = Math.max(0, daysBetween(todayIso(), recentBuyEndsDate));
+    if(counter <= 0) continue;
+    const existing = byTicker.get(ticker);
+    const candidate = {ticker, recentBuyEndsDate, latestSaleDate, rebuyDate, rebuyCounter: counter};
+    if(!existing || candidate.recentBuyEndsDate > existing.recentBuyEndsDate) byTicker.set(ticker, candidate);
+  }
+  return [...byTicker.values()].sort((a,b)=>a.recentBuyEndsDate.localeCompare(b.recentBuyEndsDate));
+}
+function ytdCapitalSummary(){
+  const year = new Date().getFullYear();
+  let gains = 0;
+  let losses = 0;
+  for(const lot of state.lots){
+    const basisPerShare = (typeof lot.importedAdjustedCostPerShare === "number" && lot.importedAdjustedCostPerShare > 0) ? lot.importedAdjustedCostPerShare : lot.costPerShare;
+    for(const sale of salesForLot(lot.id)){
+      if(!sale.sellDate || Number(sale.sellDate.slice(0,4)) !== year) continue;
+      const gainLoss = sale.sharesSold * (sale.salePricePerShare - basisPerShare);
+      if(gainLoss >= 0) gains += gainLoss;
+      else losses += gainLoss;
+    }
+  }
+  return {gains, losses, net: gains + losses, year};
+}
+function renderCountdownSummaryTable(){
+  const target = document.getElementById("countdownSummaryTable");
+  if(!target) return;
+  const rows = countdownSummaryRows();
+  if(!rows.length){
+    target.innerHTML = `<div class="empty-mini">No tickers currently have an active recent rebuy window.</div>`;
+    return;
+  }
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table"><thead><tr><th>Ticker</th><th>Recent Buy Ends Date</th><th>Latest Sale Date</th><th>Rebuy Date</th><th>Rebuy Counter</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${dateFmt(row.latestSaleDate)}</td><td>${dateFmt(row.rebuyDate)}</td><td>${row.rebuyCounter}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function renderYtdCapitalSummaryTable(){
+  const target = document.getElementById("ytdCapitalSummaryTable");
+  if(!target) return;
+  const summary = ytdCapitalSummary();
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact"><thead><tr><th>Year</th><th>Capital Gains</th><th>Capital Losses</th><th>Net Capital</th></tr></thead><tbody><tr><td>${summary.year}</td><td>${currency(summary.gains)}</td><td>${currency(summary.losses)}</td><td>${currency(summary.net)}</td></tr></tbody></table></div>`;
 }
 
 function overallSummary(){
@@ -337,10 +499,13 @@ function render(){
   document.getElementById("totalWashCount").textContent = summary.washSaleCount;
 
   applyFilterStyles();
+  renderCountdownSummaryTable();
+  renderYtdCapitalSummaryTable();
   renderLotCards(document.getElementById("usList"), usRows);
   renderLotCards(document.getElementById("intlList"), intlRows);
   renderWashCards(document.getElementById("washList"), washRows);
 }
+
 
 function renderLotCards(target, rows){
   if(!rows.length){
@@ -352,19 +517,18 @@ function renderLotCards(target, rows){
       <div class="lot-row-main">
         <div class="lot-row-left">
           <div class="lot-row-title">${r.ticker}</div>
-          <div class="lot-row-sub">${dateFmt(r.buyDate)} • ${num(r.sharesRemaining)} remaining</div>
+          <div class="lot-row-sub">${dateFmt(r.buyDate)} • ${num(r.sharesRemaining)} remaining • Lot ${r.lotIdText}</div>
         </div>
         <div class="lot-row-right">
           <span class="badge status">${r.dataEntryStatus}</span>
           ${r.washSale === "Yes" ? `<span class="badge wash">Wash</span>` : ``}
+          ${r.hasAdjustedBasis ? `<span class="badge adj">Adj. Basis</span>` : ``}
         </div>
-      </div>
-      <div class="lot-row-actions">
-        ${r.sharesRemaining > 0 ? `<button class="primary-btn action-btn" data-action="sale" data-lot-id="${r.id}">Record Sale</button>` : ``}
       </div>
     </article>
   `).join("");
 }
+
 
 function openLotOverview(lotId){
   const r = computedRows().find(x => x.id === lotId);
@@ -380,6 +544,10 @@ function openLotOverview(lotId){
       <div class="detail-card"><span class="label">Cost / Share</span><span class="value">${currency(r.costPerShare)}</span></div>
     </div>
     ${r.matchStatus ? `<p class="lot-sub overview-note">${r.matchStatus}</p>` : ``}
+    <div class="detail-section">
+      <h4>Sales History</h4>
+      ${salesHistoryTable(r)}
+    </div>
   `;
   const actions = [];
   actions.push(`<button type="button" class="secondary-btn" onclick="closeDialogs()">Close</button>`);
@@ -438,6 +606,7 @@ function openSaleDialog(lotId){
   document.getElementById("saleDialog").showModal();
 }
 
+
 function openDetail(lotId){
   const r = computedRows().find(x => x.id === lotId);
   if(!r) return;
@@ -455,13 +624,8 @@ function openDetail(lotId){
       </div>
     </div>
     <div class="detail-section">
-      <h4>Sale Details</h4>
-      <div class="detail-grid">
-        <div class="detail-card"><span class="label">Sell Date</span><span class="value">${dateFmt(r.sellDate)}</span></div>
-        <div class="detail-card"><span class="label">Sale Price / Share</span><span class="value">${currency(r.salePricePerShare)}</span></div>
-        <div class="detail-card"><span class="label">Sale Proceeds</span><span class="value">${currency(r.saleProceeds)}</span></div>
-        <div class="detail-card"><span class="label">Realized Gain / (Loss)</span><span class="value">${currency(r.realizedGainLoss)}</span></div>
-      </div>
+      <h4>Sales History</h4>
+      ${salesHistoryTable(r)}
     </div>
     <div class="detail-section">
       <h4>Wash / Basis</h4>
@@ -486,6 +650,7 @@ function closeDialogs(){
   }
 }
 
+
 function parseWorkbookState(workbook){
   const sheet = workbook.Sheets["Wash Sale Tracker"] || workbook.Sheets[workbook.SheetNames[0]];
   if(!sheet) throw new Error("Workbook does not contain a readable sheet.");
@@ -498,8 +663,7 @@ function parseWorkbookState(workbook){
   });
   if(!headerIndexes.length) throw new Error("Could not find the trade-entry table in the workbook.");
 
-  const lots = [];
-  const sales = [];
+  const grouped = new Map();
   for(const headerIndex of headerIndexes){
     for(let i = headerIndex + 1; i < rows.length; i += 1){
       const row = rows[i] || [];
@@ -515,28 +679,41 @@ function parseWorkbookState(workbook){
       const sellDate = dateToIso(row[4]);
       const salePricePerShare = toNumber(row[5]);
       const sharesRemaining = toNumber(row[6]);
+      const lotIdText = row[11] ? String(row[11]).trim() : "";
       const sharesSold = toNumber(row[12]);
+      const basisAdjustmentIn = toNumber(row[20]) || 0;
+      const adjustedCostPerShare = toNumber(row[22]);
       const note = row[23] ? String(row[23]).trim() : "";
 
       if(!ticker || !buyDate || sharesBought === null || costPerShare === null || sharesRemaining === null) continue;
 
-      const lotId = `xlsx-row-${i+1}`;
-      lots.push({
-        id: lotId,
-        ticker,
-        sleeve: inferSleeve(ticker),
-        buyDate,
-        sharesBought,
-        costPerShare,
-        sharesRemaining,
-        parentLotId: null,
-        note
-      });
-
+      const groupKey = lotIdText || `xlsx-row-${i+1}`;
+      if(!grouped.has(groupKey)){
+        grouped.set(groupKey, {
+          id: `xlsx-${groupKey.replace(/[^A-Za-z0-9_-]/g, "_")}`,
+          ticker,
+          sleeve: inferSleeve(ticker),
+          buyDate,
+          costPerShare,
+          lotIdText: groupKey,
+          sharesBoughtCandidates: [],
+          remainingCandidates: [],
+          noteParts: [],
+          importedBasisAdjustmentIn: 0,
+          importedAdjustedCostPerShare: adjustedCostPerShare,
+          sales: []
+        });
+      }
+      const group = grouped.get(groupKey);
+      group.sharesBoughtCandidates.push(sharesBought);
+      group.remainingCandidates.push(sharesRemaining);
+      if(note) group.noteParts.push(note);
+      group.importedBasisAdjustmentIn = Math.max(group.importedBasisAdjustmentIn || 0, basisAdjustmentIn || 0);
+      if(typeof adjustedCostPerShare === "number") group.importedAdjustedCostPerShare = adjustedCostPerShare;
       if(sellDate && sharesSold !== null && sharesSold > 0 && salePricePerShare !== null && salePricePerShare > 0){
-        sales.push({
-          id: `xlsx-sale-${i+1}`,
-          lotId,
+        group.sales.push({
+          id: `xlsx-sale-${group.id}-${group.sales.length+1}`,
+          lotId: group.id,
           sellDate,
           sharesSold,
           salePricePerShare
@@ -544,6 +721,31 @@ function parseWorkbookState(workbook){
       }
     }
   }
+
+  const lots = [];
+  const sales = [];
+  for(const group of grouped.values()){
+    const totalSold = group.sales.reduce((sum, sale) => sum + sale.sharesSold, 0);
+    const maxRemaining = group.remainingCandidates.length ? Math.max(...group.remainingCandidates) : 0;
+    const maxBought = group.sharesBoughtCandidates.length ? Math.max(...group.sharesBoughtCandidates) : 0;
+    const sharesBought = Math.max(maxBought, totalSold + maxRemaining);
+    lots.push({
+      id: group.id,
+      ticker: group.ticker,
+      sleeve: group.sleeve,
+      buyDate: group.buyDate,
+      sharesBought,
+      costPerShare: group.costPerShare,
+      sharesRemaining: Math.max(0, maxRemaining),
+      parentLotId: null,
+      lotIdText: group.lotIdText,
+      importedBasisAdjustmentIn: group.importedBasisAdjustmentIn || 0,
+      importedAdjustedCostPerShare: group.importedAdjustedCostPerShare,
+      note: [...new Set(group.noteParts)].join(" | ")
+    });
+    sales.push(...group.sales);
+  }
+
   if(!lots.length) throw new Error("No trade rows were found in the workbook.");
   return normalizeState({lots, sales});
 }
@@ -627,15 +829,8 @@ document.getElementById("saleForm").addEventListener("submit", (e) => {
     return;
   }
 
-  if(sharesSold < lot.sharesRemaining){
-    state.lots[idx].sharesRemaining = lot.sharesRemaining - sharesSold;
-    const soldSlice = {id:uid(),ticker:lot.ticker,sleeve:lot.sleeve,buyDate:lot.buyDate,sharesBought:sharesSold,costPerShare:lot.costPerShare,sharesRemaining:0,parentLotId:lot.id,note:"Split sold slice"};
-    state.lots.push(soldSlice);
-    state.sales.push({id:uid(),lotId:soldSlice.id,sellDate,sharesSold,salePricePerShare});
-  } else {
-    state.lots[idx].sharesRemaining = 0;
-    state.sales.push({id:uid(),lotId,sellDate,sharesSold,salePricePerShare});
-  }
+  state.lots[idx].sharesRemaining = Math.max(0, lot.sharesRemaining - sharesSold);
+  state.sales.push({id:uid(),lotId,sellDate,sharesSold,salePricePerShare});
   sortLots();
   saveState();
   closeDialogs();
