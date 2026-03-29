@@ -1,7 +1,7 @@
 {
-  "name": "Sale Tracker v18",
+  "name": "Sale Tracker v19",
   "short_name": "SaleTracker",
-  "start_url": "./?v=18",
+  "start_url": "./?v=19",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f5f7fb",

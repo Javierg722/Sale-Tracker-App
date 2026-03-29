@@ -1,7 +1,7 @@
-const APP_VERSION = "v18";
+const APP_VERSION = "v19";
 
-const STORE_KEY = "sale-tracker-pwa-v18";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v19";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -296,7 +296,7 @@ function salesHistoryTable(lot){
     if(row.type === "open"){
       return `<tr class="open-row"><td>Open shares</td><td>${num(row.sharesSold)}</td><td></td><td></td><td></td><td></td></tr>`;
     }
-    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td><td><button type="button" class="secondary-btn table-btn" onclick="deleteSale('${row.id}')">Delete</button></td></tr>`;
+    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td><td><button type="button" class="secondary-btn table-btn" onclick="deleteSale('${row.id}')">Delete</button> <button type="button" class="secondary-btn table-btn" onclick="openEditSaleDialog('${row.id}')">Edit</button></td></tr>`;
   }).join("");
   return `<div class="table-wrap"><table class="sales-table"><thead><tr><th>Sale Date</th><th>Shares</th><th>Sale Price</th><th>Proceeds</th><th>Gain / (Loss)</th><th>Action</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
@@ -672,6 +672,7 @@ function openLotOverview(lotId){
   actions.push(`<button type="button" class="secondary-btn" onclick="closeDialogs()">Close</button>`);
   actions.push(`<button type="button" class="secondary-btn" onclick="openDetail('${r.id}')">Details</button>`);
   actions.push(`<button type="button" class="secondary-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>`);
+  actions.push(`<button type="button" class="secondary-btn" onclick="openEditBuyDialog('${r.id}')">Edit Buy</button>`);
   if(r.sharesRemaining > 0){
     actions.push(`<button type="button" class="primary-btn" onclick="closeDialogs(); openSaleDialog('${r.id}')">Record Sale</button>`);
   }
@@ -717,6 +718,7 @@ function openLotDialog(sleeve){
 }
 
 function openSaleDialog(lotId){
+  resetSaleDialogMode();
   const lot = state.lots.find(l => l.id === lotId);
   document.getElementById("saleLotId").value = lotId;
   document.getElementById("saleContext").textContent = `${lot.ticker} • Buy ${dateFmt(lot.buyDate)} • Shares Remaining ${num(lot.sharesRemaining)} • Cost/Share ${currency(lot.costPerShare)}`;
@@ -769,6 +771,7 @@ function openDetail(lotId){
     detailActions.innerHTML = `
       <button type="button" class="secondary-btn" id="summaryFromDetail">Summary</button>
       <button type="button" class="secondary-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>
+      <button type="button" class="secondary-btn" onclick="openEditBuyDialog('${r.id}')">Edit Buy</button>
       <button type="button" class="primary-btn" id="closeDetail">Done</button>
     `;
     document.getElementById("summaryFromDetail").addEventListener("click", () => {
@@ -784,6 +787,85 @@ function openDetail(lotId){
   }
   document.getElementById("detailDialog").showModal();
 }
+
+
+function ensureEditFields(){
+  const lotForm = document.getElementById("lotForm");
+  if(lotForm && !document.getElementById("lotEditId")){
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.id = "lotEditId";
+    lotForm.appendChild(input);
+  }
+  const saleForm = document.getElementById("saleForm");
+  if(saleForm && !document.getElementById("saleEditId")){
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.id = "saleEditId";
+    saleForm.appendChild(input);
+  }
+}
+
+function resetLotDialogMode(){
+  ensureEditFields();
+  const editId = document.getElementById("lotEditId");
+  if(editId) editId.value = "";
+  const title = document.getElementById("lotDialogTitle");
+  if(title) title.textContent = "Add Buy Lot";
+  const submitBtn = document.querySelector('#lotForm button[type="submit"]');
+  if(submitBtn) submitBtn.textContent = "Save Buy";
+}
+
+function resetSaleDialogMode(){
+  ensureEditFields();
+  const editId = document.getElementById("saleEditId");
+  if(editId) editId.value = "";
+  const title = document.querySelector("#saleForm h3");
+  if(title) title.textContent = "Record Sale";
+  const submitBtn = document.querySelector('#saleForm button[type="submit"]');
+  if(submitBtn) submitBtn.textContent = "Save Sale";
+}
+
+function openEditBuyDialog(lotId){
+  ensureEditFields();
+  const lot = state.lots.find(l => l.id === lotId);
+  if(!lot) return;
+  document.getElementById("lotTicker").value = lot.ticker || "";
+  document.getElementById("lotBuyDate").value = lot.buyDate || "";
+  document.getElementById("lotShares").value = lot.sharesBought ?? "";
+  document.getElementById("lotCost").value = lot.costPerShare ?? "";
+  document.getElementById("lotNote").value = lot.note || "";
+  document.getElementById("lotSleeve").value = lot.sleeve || inferSleeve(lot.ticker);
+  document.getElementById("lotEditId").value = lot.id;
+  const title = document.getElementById("lotDialogTitle");
+  if(title) title.textContent = "Edit Buy Lot";
+  const submitBtn = document.querySelector('#lotForm button[type="submit"]');
+  if(submitBtn) submitBtn.textContent = "Save Changes";
+  closeDialogs();
+  document.getElementById("lotDialog").showModal();
+}
+
+function openEditSaleDialog(saleId){
+  ensureEditFields();
+  const sale = state.sales.find(s => s.id === saleId);
+  if(!sale) return;
+  const lot = state.lots.find(l => l.id === sale.lotId);
+  document.getElementById("saleLotId").value = sale.lotId;
+  document.getElementById("saleDate").value = sale.sellDate || "";
+  document.getElementById("saleShares").value = sale.sharesSold ?? "";
+  document.getElementById("salePrice").value = sale.salePricePerShare ?? "";
+  document.getElementById("saleEditId").value = sale.id;
+  const title = document.querySelector("#saleForm h3");
+  if(title) title.textContent = "Edit Sale";
+  const submitBtn = document.querySelector('#saleForm button[type="submit"]');
+  if(submitBtn) submitBtn.textContent = "Save Changes";
+  if(lot){
+    document.getElementById("saleContext").textContent = `${lot.ticker} • Buy ${dateFmt(lot.buyDate)} • Shares Remaining ${num(lot.sharesRemaining + (sale.sharesSold || 0))} • Cost/Share ${currency(lot.costPerShare)}`;
+  }
+  closeDialogs();
+  document.getElementById("saleDialog").showModal();
+}
+
 
 function deleteBuy(lotId){
   const row = computedRows().find(x => x.id === lotId);
@@ -972,13 +1054,18 @@ document.addEventListener("keydown", (e) => {
 
 document.getElementById("addUsBtn").addEventListener("click", () => openLotDialog("U.S."));
 document.getElementById("addIntlBtn").addEventListener("click", () => openLotDialog("International"));
-document.getElementById("cancelLot").addEventListener("click", closeDialogs);
-document.getElementById("cancelSale").addEventListener("click", closeDialogs);
+document.getElementById("cancelLot").addEventListener("click", () => { resetLotDialogMode(); closeDialogs(); });
+document.getElementById("cancelSale").addEventListener("click", () => { resetSaleDialogMode(); closeDialogs(); });
 document.getElementById("infoBtn").addEventListener("click", () => document.getElementById("infoDialog").showModal());
 document.getElementById("closeInfo").addEventListener("click", closeDialogs);
+ensureEditFields();
+resetLotDialogMode();
+resetSaleDialogMode();
 
 document.getElementById("lotForm").addEventListener("submit", (e) => {
   e.preventDefault();
+  ensureEditFields();
+  const editId = document.getElementById("lotEditId").value;
   const ticker = document.getElementById("lotTicker").value.trim().toUpperCase();
   const buyDate = document.getElementById("lotBuyDate").value;
   const sharesBought = parseFloat(document.getElementById("lotShares").value);
@@ -989,15 +1076,39 @@ document.getElementById("lotForm").addEventListener("submit", (e) => {
     alert("Please complete the required buy fields.");
     return;
   }
-  state.lots.push({id:uid(),ticker,sleeve,buyDate,sharesBought,costPerShare,sharesRemaining:sharesBought,parentLotId:null,note});
+  if(editId){
+    const idx = state.lots.findIndex(l => l.id === editId);
+    if(idx < 0) return;
+    const lot = state.lots[idx];
+    const soldShares = Math.max(0, (lot.sharesBought || 0) - (lot.sharesRemaining || 0));
+    if(sharesBought < soldShares){
+      alert(`Shares Bought cannot be less than shares already sold (${num(soldShares)}).`);
+      return;
+    }
+    state.lots[idx] = {
+      ...lot,
+      ticker,
+      sleeve,
+      buyDate,
+      sharesBought,
+      costPerShare,
+      note,
+      sharesRemaining: Math.max(0, sharesBought - soldShares)
+    };
+  } else {
+    state.lots.push({id:uid(),ticker,sleeve,buyDate,sharesBought,costPerShare,sharesRemaining:sharesBought,parentLotId:null,note});
+  }
   sortLots();
   saveState();
+  resetLotDialogMode();
   closeDialogs();
   render();
 });
 
 document.getElementById("saleForm").addEventListener("submit", (e) => {
   e.preventDefault();
+  ensureEditFields();
+  const editSaleId = document.getElementById("saleEditId").value;
   const lotId = document.getElementById("saleLotId").value;
   const sellDate = document.getElementById("saleDate").value;
   const sharesSold = parseFloat(document.getElementById("saleShares").value);
@@ -1005,15 +1116,34 @@ document.getElementById("saleForm").addEventListener("submit", (e) => {
 
   const idx = state.lots.findIndex(l => l.id === lotId);
   const lot = state.lots[idx];
-  if(idx < 0 || !(sharesSold > 0) || sharesSold > lot.sharesRemaining || !(salePricePerShare > 0)){
-    alert("Shares sold must be > 0 and <= shares remaining. Sale price must be > 0.");
+  if(idx < 0 || !(sharesSold > 0) || !(salePricePerShare > 0)){
+    alert("Shares sold must be > 0 and sale price must be > 0.");
     return;
   }
 
-  state.lots[idx].sharesRemaining = Math.max(0, lot.sharesRemaining - sharesSold);
-  state.sales.push({id:uid(),lotId,sellDate,sharesSold,salePricePerShare});
+  let availableShares = lot.sharesRemaining || 0;
+  if(editSaleId){
+    const existingSale = state.sales.find(s => s.id === editSaleId);
+    if(existingSale) availableShares += existingSale.sharesSold || 0;
+  }
+  if(sharesSold > availableShares){
+    alert("Shares sold must be <= shares remaining for this lot.");
+    return;
+  }
+
+  if(editSaleId){
+    const saleIdx = state.sales.findIndex(s => s.id === editSaleId);
+    const oldSale = state.sales[saleIdx];
+    if(saleIdx < 0 || !oldSale) return;
+    state.lots[idx].sharesRemaining = Math.max(0, (lot.sharesRemaining || 0) + (oldSale.sharesSold || 0) - sharesSold);
+    state.sales[saleIdx] = { ...oldSale, lotId, sellDate, sharesSold, salePricePerShare };
+  } else {
+    state.lots[idx].sharesRemaining = Math.max(0, (lot.sharesRemaining || 0) - sharesSold);
+    state.sales.push({id:uid(),lotId,sellDate,sharesSold,salePricePerShare});
+  }
   sortLots();
   saveState();
+  resetSaleDialogMode();
   closeDialogs();
   render();
 });
