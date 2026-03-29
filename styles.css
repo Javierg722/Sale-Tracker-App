@@ -194,3 +194,11 @@ input{
   line-height:1.1;
   border-radius:999px;
 }
+
+
+/* v14 row polish */
+.badge.status-open{background:#228b22;color:#fff;}
+.lot-row-sub{font-size:13px;color:var(--muted);margin-top:4px;}
+.lot-row-lotid{margin-top:8px;font-size:12px;color:var(--muted);word-break:break-word;}
+.summary-table th,.summary-table td{text-align:center;}
+.summary-table.compact th,.summary-table.compact td{text-align:center;}

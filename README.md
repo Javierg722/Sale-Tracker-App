@@ -1,6 +1,3 @@
-# Sale Tracker PWA v13
+# Sale Tracker PWA v14
 
-- countdown summary only shows tickers with Recent Buy = Yes
-- row status/wash/adjusted-basis tags are smaller and tucked top-right
-- Import JSON Backup removed from Tools
-- service worker remains disabled/unregistered on load
+UI polish update: green open-lot tag, lot ID moved to its own bottom line, and centered summary tables.

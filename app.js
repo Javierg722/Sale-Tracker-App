@@ -532,21 +532,24 @@ function renderLotCards(target, rows){
     target.innerHTML = `<div class="empty-state">No lots match the current filters.</div>`;
     return;
   }
-  target.innerHTML = rows.map(r => `
+  target.innerHTML = rows.map(r => {
+    const statusClass = r.dataEntryStatus === "Open lot" ? "status-open" : "status";
+    return `
     <article class="lot-row" data-lot-id="${r.id}" role="button" tabindex="0" aria-label="Open ${r.ticker} lot">
       <div class="lot-row-main">
         <div class="lot-row-left">
           <div class="lot-row-title">${r.ticker}</div>
-          <div class="lot-row-sub">${dateFmt(r.buyDate)} • ${num(r.sharesRemaining)} remaining • Lot ${r.lotIdText}</div>
+          <div class="lot-row-sub">${dateFmt(r.buyDate)} • ${num(r.sharesRemaining)} remaining</div>
         </div>
         <div class="lot-row-right">
-          <span class="badge status">${r.dataEntryStatus}</span>
+          <span class="badge ${statusClass}">${r.dataEntryStatus}</span>
           ${r.washSale === "Yes" ? `<span class="badge wash">Wash</span>` : ``}
           ${r.hasAdjustedBasis ? `<span class="badge adj">Adj. Basis</span>` : ``}
         </div>
       </div>
+      <div class="lot-row-lotid">Lot ${r.lotIdText}</div>
     </article>
-  `).join("");
+  `}).join("");
 }
 
 
