@@ -115,4 +115,16 @@ input{
 }
 
 
-.build-version{margin:.25rem 0 0;color:#5d7287;font-size:.78rem;font-weight:600;}
+.build-version{margin:.25rem 0 0;color:#dce8f6;font-size:.78rem;font-weight:600;}
+
+.lot-row{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px; box-shadow:0 1px 2px rgba(0,0,0,.04); display:grid; gap:10px; cursor:pointer}
+.lot-row:active{transform:scale(.998)}
+.lot-row-main{display:flex; justify-content:space-between; gap:10px; align-items:center}
+.lot-row-left{min-width:0}
+.lot-row-title{font-size:17px; font-weight:800; color:var(--blue2)}
+.lot-row-sub{font-size:13px; color:var(--muted); margin-top:2px}
+.lot-row-right{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end}
+.lot-row-actions{display:flex; gap:8px}
+.action-btn{flex:1}
+.overview-note{margin-top:10px; color:#234a73; font-weight:700}
+.compact-overview-grid{margin-top:2px}

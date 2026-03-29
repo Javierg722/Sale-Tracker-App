@@ -1,6 +1,6 @@
-const APP_VERSION = "v6";
+const APP_VERSION = "v7";
 
-const STORE_KEY = "sale-tracker-pwa-v5";
+const STORE_KEY = "sale-tracker-pwa-v7";
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -300,31 +300,48 @@ function renderLotCards(target, rows){
     return;
   }
   target.innerHTML = rows.map(r => `
-    <article class="lot-card">
-      <div class="lot-top">
-        <div class="lot-meta">
-          <div class="lot-ticker">${r.ticker}</div>
-          <div class="lot-sub">Lot ID: ${r.lotIdText}</div>
+    <article class="lot-row" data-lot-id="${r.id}" role="button" tabindex="0" aria-label="Open ${r.ticker} lot">
+      <div class="lot-row-main">
+        <div class="lot-row-left">
+          <div class="lot-row-title">${r.ticker}</div>
+          <div class="lot-row-sub">${dateFmt(r.buyDate)} • ${num(r.sharesRemaining)} remaining</div>
         </div>
-        <div class="badges">
+        <div class="lot-row-right">
           <span class="badge status">${r.dataEntryStatus}</span>
-          ${r.washSale === "Yes" ? `<span class="badge wash">Wash Sale</span>` : ``}
-          ${r.matchStatus ? `<span class="badge note">Note</span>` : ``}
+          ${r.washSale === "Yes" ? `<span class="badge wash">Wash</span>` : ``}
         </div>
       </div>
-      <div class="lot-core">
-        <div class="core-item"><span class="label">Buy Date</span><span class="value">${dateFmt(r.buyDate)}</span></div>
-        <div class="core-item"><span class="label">Shares Remaining</span><span class="value">${num(r.sharesRemaining)}</span></div>
-        <div class="core-item"><span class="label">Shares Bought</span><span class="value">${num(r.sharesBought)}</span></div>
-        <div class="core-item"><span class="label">Cost / Share</span><span class="value">${currency(r.costPerShare)}</span></div>
-      </div>
-      ${r.matchStatus ? `<div class="lot-sub" style="margin-top:10px;color:#234a73;font-weight:700">${r.matchStatus}</div>` : ``}
-      <div class="actions">
-        <button class="secondary-btn" onclick="openDetail('${r.id}')">Details</button>
-        ${r.sharesRemaining > 0 ? `<button class="primary-btn" onclick="openSaleDialog('${r.id}')">Record Sale</button>` : ``}
+      <div class="lot-row-actions">
+        <button class="secondary-btn action-btn" data-action="details" data-lot-id="${r.id}">Details</button>
+        ${r.sharesRemaining > 0 ? `<button class="primary-btn action-btn" data-action="sale" data-lot-id="${r.id}">Record Sale</button>` : ``}
       </div>
     </article>
   `).join("");
+}
+
+function openLotOverview(lotId){
+  const r = computedRows().find(x => x.id === lotId);
+  if(!r) return;
+  document.getElementById("overviewTitle").textContent = `${r.ticker} Lot`;
+  document.getElementById("overviewBody").innerHTML = `
+    <div class="detail-grid compact-overview-grid">
+      <div class="detail-card"><span class="label">Lot ID</span><span class="value">${r.lotIdText}</span></div>
+      <div class="detail-card"><span class="label">Status</span><span class="value">${r.dataEntryStatus}</span></div>
+      <div class="detail-card"><span class="label">Buy Date</span><span class="value">${dateFmt(r.buyDate)}</span></div>
+      <div class="detail-card"><span class="label">Shares Remaining</span><span class="value">${num(r.sharesRemaining)}</span></div>
+      <div class="detail-card"><span class="label">Shares Bought</span><span class="value">${num(r.sharesBought)}</span></div>
+      <div class="detail-card"><span class="label">Cost / Share</span><span class="value">${currency(r.costPerShare)}</span></div>
+    </div>
+    ${r.matchStatus ? `<p class="lot-sub overview-note">${r.matchStatus}</p>` : ``}
+  `;
+  const actions = [];
+  actions.push(`<button type="button" class="secondary-btn" onclick="closeDialogs()">Close</button>`);
+  actions.push(`<button type="button" class="secondary-btn" onclick="closeDialogs(); openDetail('${r.id}')">Details</button>`);
+  if(r.sharesRemaining > 0){
+    actions.push(`<button type="button" class="primary-btn" onclick="closeDialogs(); openSaleDialog('${r.id}')">Record Sale</button>`);
+  }
+  document.getElementById("overviewActions").innerHTML = actions.join("");
+  document.getElementById("overviewDialog").showModal();
 }
 
 function renderWashCards(target, rows){
@@ -416,10 +433,10 @@ function openDetail(lotId){
 }
 
 function closeDialogs(){
-  document.getElementById("lotDialog").close();
-  document.getElementById("saleDialog").close();
-  document.getElementById("detailDialog").close();
-  document.getElementById("infoDialog").close();
+  for(const id of ["lotDialog","saleDialog","detailDialog","infoDialog","overviewDialog"]){
+    const dialog = document.getElementById(id);
+    if(dialog && dialog.open) dialog.close();
+  }
 }
 
 function parseWorkbookState(workbook){
@@ -493,6 +510,27 @@ document.querySelectorAll(".tab").forEach(btn => {
   });
 });
 
+document.addEventListener("click", (e) => {
+  const actionBtn = e.target.closest(".action-btn");
+  if(actionBtn){
+    e.stopPropagation();
+    const lotId = actionBtn.dataset.lotId;
+    if(actionBtn.dataset.action === "details") openDetail(lotId);
+    if(actionBtn.dataset.action === "sale") openSaleDialog(lotId);
+    return;
+  }
+  const row = e.target.closest(".lot-row");
+  if(row) openLotOverview(row.dataset.lotId);
+});
+
+document.addEventListener("keydown", (e) => {
+  const row = e.target.closest ? e.target.closest(".lot-row") : null;
+  if(row && (e.key === "Enter" || e.key === " ")){
+    e.preventDefault();
+    openLotOverview(row.dataset.lotId);
+  }
+});
+
 document.getElementById("addUsBtn").addEventListener("click", () => openLotDialog("U.S."));
 document.getElementById("addIntlBtn").addEventListener("click", () => openLotDialog("International"));
 document.getElementById("cancelLot").addEventListener("click", closeDialogs);
@@ -552,8 +590,9 @@ document.getElementById("saleForm").addEventListener("submit", (e) => {
 document.getElementById("exportBtn").addEventListener("click", async () => {
   try{
     const workbook = await buildExportWorkbook();
-    const dateStamp = new Date().toISOString().slice(0,10);
-    XLSX.writeFile(workbook, `Sale Tracker - app export - ${dateStamp}.xlsx`, { cellStyles:true });
+    const now = new Date();
+    const stamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}`;
+    XLSX.writeFile(workbook, `Sale Tracker - Export ${stamp}.xlsx`, { cellStyles:true });
   } catch(err){
     alert("Spreadsheet export failed: " + err.message);
   }

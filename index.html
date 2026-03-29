@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Sale Tracker">
   <title>Sale Tracker</title>
-  <meta name="sale-tracker-version" content="v6">
-  <link rel="manifest" href="manifest.webmanifest?v=6">
+  <meta name="sale-tracker-version" content="v7">
+  <link rel="manifest" href="manifest.webmanifest?v=7">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +17,7 @@
     <div>
       <h1>Sale Tracker</h1>
       <p>Lot-based tracking built for iPhone</p>
-      <p class="build-version">Build v6</p>
+      <p class="build-version">Build v7</p>
     </div>
     <button id="infoBtn" class="icon-btn" aria-label="Info">?</button>
   </header>
@@ -165,14 +165,24 @@
     </div>
   </dialog>
 
-  <dialog id="infoDialog" class="sheet">
+    <dialog id="overviewDialog" class="sheet">
+    <div class="sheet-content details">
+      <div class="sheet-head">
+        <h3 id="overviewTitle">Lot</h3>
+      </div>
+      <div id="overviewBody"></div>
+      <div id="overviewActions" class="sheet-actions"></div>
+    </div>
+  </dialog>
+
+<dialog id="infoDialog" class="sheet">
     <div class="sheet-content">
       <div class="sheet-head">
         <h3>How this app works</h3>
       </div>
       <div class="info-list">
-        <p><strong>Main screen:</strong> compact lot cards grouped by sleeve.</p>
-        <p><strong>Tap a lot:</strong> see the detailed basis, gain/loss, and wash fields.</p>
+        <p><strong>Main screen:</strong> one-line lot rows grouped by sleeve.</p>
+        <p><strong>Tap a lot:</strong> open a compact lot summary. Use Details for the full extended view.</p>
         <p><strong>Partial sale:</strong> the app splits the lot automatically into a sold slice and remaining open slice.</p>
         <p><strong>Wash Review:</strong> only actual wash-sale rows appear there.</p>
       </div>
