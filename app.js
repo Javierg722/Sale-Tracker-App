@@ -1,7 +1,7 @@
-const APP_VERSION = "v30.2";
+const APP_VERSION = "v31";
 
-const STORE_KEY = "sale-tracker-pwa-v30.2";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v30.1","sale-tracker-pwa-v30","sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v31";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v30.2","sale-tracker-pwa-v30.1","sale-tracker-pwa-v30","sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -38,6 +38,206 @@ const activeFilters = new Set();
 let activeYearFilter = "all";
 
 function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+const BASELINE_KEY = "sale-tracker-export-baseline-v1";
+
+function serializableLot(lot){
+  return {
+    id: lot.id,
+    ticker: lot.ticker,
+    sleeve: lot.sleeve,
+    buyDate: lot.buyDate,
+    sharesBought: Number(lot.sharesBought || 0),
+    costPerShare: Number(lot.costPerShare || 0),
+    sharesRemaining: Number(lot.sharesRemaining || 0),
+    note: lot.note || ""
+  };
+}
+function serializableSale(sale){
+  return {
+    id: sale.id,
+    lotId: sale.lotId,
+    sellDate: sale.sellDate,
+    sharesSold: Number(sale.sharesSold || 0),
+    salePricePerShare: Number(sale.salePricePerShare || 0)
+  };
+}
+function serializableWashMatch(match){
+  return {
+    sourceLotId: match.sourceLotId,
+    replacementLotId: match.replacementLotId,
+    matchedShares: Number(match.matchedShares || 0),
+    disallowedLoss: Number(match.disallowedLoss || 0)
+  };
+}
+function currentBaselineSnapshot(){
+  return {
+    lots: state.lots.map(serializableLot).sort((a,b)=>String(a.id).localeCompare(String(b.id))),
+    sales: state.sales.map(serializableSale).sort((a,b)=>String(a.id).localeCompare(String(b.id))),
+    washMatches: (state.washMatches || []).map(serializableWashMatch).sort((a,b)=>
+      `${a.sourceLotId}-${a.replacementLotId}`.localeCompare(`${b.sourceLotId}-${b.replacementLotId}`)
+    )
+  };
+}
+function loadBaselineSnapshot(){
+  try{
+    const raw = localStorage.getItem(BASELINE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function saveBaselineSnapshot(){
+  try{
+    localStorage.setItem(BASELINE_KEY, JSON.stringify(currentBaselineSnapshot()));
+  } catch(err){
+    console.warn("Could not save baseline snapshot", err);
+  }
+}
+function ensureBaselineSnapshot(){
+  const current = loadBaselineSnapshot();
+  if(!current) saveBaselineSnapshot();
+}
+
+function getChangedLotsAgainstBaseline(){
+  const baseline = loadBaselineSnapshot();
+  if(!baseline) return computedRows().map(r => ({ lotIdText:r.lotIdText, ticker:r.ticker, change:"Current lot set" }));
+  const baselineLots = new Map((baseline.lots || []).map(l => [l.id, JSON.stringify(l)]));
+  const baselineSales = new Map((baseline.sales || []).map(s => [s.id, JSON.stringify(s)]));
+  const changes = [];
+  for(const lot of state.lots){
+    const serialized = JSON.stringify(serializableLot(lot));
+    if(!baselineLots.has(lot.id)){
+      changes.push({ lotIdText: displayLotIdById(lot.id), ticker: lot.ticker, change:"New buy lot" });
+      continue;
+    }
+    if(baselineLots.get(lot.id) !== serialized){
+      changes.push({ lotIdText: displayLotIdById(lot.id), ticker: lot.ticker, change:"Buy lot edited" });
+    }
+  }
+  for(const sale of state.sales){
+    const serialized = JSON.stringify(serializableSale(sale));
+    if(!baselineSales.has(sale.id)){
+      const lot = state.lots.find(l => l.id === sale.lotId);
+      changes.push({ lotIdText: lot ? displayLotIdById(lot.id) : sale.lotId, ticker: lot ? lot.ticker : "", change:"New or edited sale" });
+    } else if(baselineSales.get(sale.id) !== serialized){
+      const lot = state.lots.find(l => l.id === sale.lotId);
+      changes.push({ lotIdText: lot ? displayLotIdById(lot.id) : sale.lotId, ticker: lot ? lot.ticker : "", change:"Sale edited" });
+    }
+  }
+  const uniq = [];
+  const seen = new Set();
+  for(const row of changes){
+    const key = `${row.lotIdText}|${row.change}`;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    uniq.push(row);
+  }
+  return uniq;
+}
+
+function collectValidationWarnings(){
+  const warnings = [];
+  const rows = computedRows();
+  const lotIdMap = new Map();
+  for(const row of rows){
+    const existing = lotIdMap.get(row.lotIdText) || [];
+    existing.push(row);
+    lotIdMap.set(row.lotIdText, existing);
+  }
+  for(const [lotIdText, items] of lotIdMap.entries()){
+    if(items.length > 1){
+      const first = items[0];
+      const mismatch = items.some(x =>
+        x.ticker !== first.ticker ||
+        x.buyDate !== first.buyDate ||
+        !approxEqual(Number(x.sharesBought || 0), Number(first.sharesBought || 0)) ||
+        !approxEqual(Number(x.costPerShare || 0), Number(first.costPerShare || 0))
+      );
+      if(mismatch){
+        warnings.push(`Duplicate Lot ID with conflicting buy details: ${lotIdText}`);
+      }
+    }
+  }
+  for(const lot of state.lots){
+    if(Number(lot.sharesRemaining || 0) < -0.000001){
+      warnings.push(`Negative shares remaining on ${displayLotIdById(lot.id)}.`);
+    }
+    if(Number(lot.sharesRemaining || 0) - Number(lot.sharesBought || 0) > 0.000001){
+      warnings.push(`Shares remaining exceeds shares bought on ${displayLotIdById(lot.id)}.`);
+    }
+  }
+  const model = computeCalculatedModel();
+  for(const row of rows){
+    if(row.washSale === "Yes"){
+      const unmatched = Math.max(0, Number(row.sharesSold || 0) - Number(row.candidateMatchedShares || 0));
+      if(unmatched > 0.000001){
+        warnings.push(`Unmatched wash shares remain on ${row.lotIdText}: ${num(unmatched)}.`);
+      }
+    }
+  }
+  const washMatchTotal = (state.washMatches || []).reduce((sum, m) => sum + Number(m.matchedShares || 0), 0);
+  if((state.washMatches || []).length && washMatchTotal <= 0){
+    warnings.push("Wash match records exist but total matched shares are zero.");
+  }
+  return warnings;
+}
+
+function buildExportReviewHtml(){
+  const warnings = collectValidationWarnings();
+  const changedLots = getChangedLotsAgainstBaseline();
+  const ytd = ytdCapitalSummary();
+  const washMatches = state.washMatches || [];
+  const unmatchedRows = computedRows()
+    .filter(r => r.washSale === "Yes")
+    .map(r => ({ lotIdText:r.lotIdText, unmatched:Math.max(0, Number(r.sharesSold || 0) - Number(r.candidateMatchedShares || 0)) }))
+    .filter(r => r.unmatched > 0.000001);
+
+  return `
+    <div class="review-grid">
+      <section class="review-card">
+        <h4>Validation Warnings</h4>
+        ${warnings.length ? `<ul class="review-list warning-list">${warnings.map(w => `<li>${w}</li>`).join("")}</ul>` : `<p class="muted">No validation warnings detected.</p>`}
+      </section>
+      <section class="review-card">
+        <h4>Changed Lots Since Last Import/Export</h4>
+        ${changedLots.length ? `<ul class="review-list">${changedLots.slice(0,16).map(row => `<li><strong>${row.ticker}</strong> · ${row.lotIdText} — ${row.change}</li>`).join("")}</ul>${changedLots.length > 16 ? `<p class="muted">+ ${changedLots.length - 16} more changes</p>` : ``}` : `<p class="muted">No lot changes since the last import/export baseline.</p>`}
+      </section>
+      <section class="review-card">
+        <h4>Wash Match Status</h4>
+        <div class="review-stats">
+          <div><span class="label">Match Records</span><strong>${washMatches.length}</strong></div>
+          <div><span class="label">Unmatched Source Lots</span><strong>${unmatchedRows.length}</strong></div>
+        </div>
+        ${unmatchedRows.length ? `<ul class="review-list">${unmatchedRows.map(row => `<li>${row.lotIdText} — ${num(row.unmatched)} unmatched wash shares</li>`).join("")}</ul>` : `<p class="muted">All current wash-source rows are fully matched or have no remaining unmatched shares.</p>`}
+      </section>
+      <section class="review-card">
+        <h4>Current YTD Totals</h4>
+        <div class="review-stats">
+          <div><span class="label">Short-Term Net</span><strong>${currency(ytd.shortTermNet)}</strong></div>
+          <div><span class="label">Long-Term Net</span><strong>${currency(ytd.longTermNet)}</strong></div>
+          <div><span class="label">Total Net</span><strong>${currency(ytd.totalNet)}</strong></div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function openExportReviewDialog(){
+  const body = document.getElementById("exportReviewBody");
+  if(!body) return;
+  body.innerHTML = buildExportReviewHtml();
+  document.getElementById("exportReviewDialog").showModal();
+}
+
+async function runSpreadsheetExport(){
+  const workbook = await buildExportWorkbook();
+  const now = new Date();
+  const stamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}`;
+  XLSX.writeFile(workbook, `Sale Tracker - Export ${stamp}.xlsx`, { cellStyles:true });
+  saveBaselineSnapshot();
+}
+
 function inferSleeve(t){ return intlTickers.has((t||"").toUpperCase().trim()) ? "International" : "U.S."; }
 function currency(v){ return typeof v === "number" ? v.toLocaleString(undefined,{style:"currency",currency:"USD"}) : ""; }
 function num(v){ return typeof v === "number" ? v.toLocaleString(undefined,{maximumFractionDigits:4}) : ""; }
@@ -1511,15 +1711,8 @@ document.getElementById("saleForm").addEventListener("submit", (e) => {
   render();
 });
 
-document.getElementById("exportBtn").addEventListener("click", async () => {
-  try{
-    const workbook = await buildExportWorkbook();
-    const now = new Date();
-    const stamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}`;
-    XLSX.writeFile(workbook, `Sale Tracker - Export ${stamp}.xlsx`, { cellStyles:true });
-  } catch(err){
-    alert("Spreadsheet export failed: " + err.message);
-  }
+document.getElementById("exportBtn").addEventListener("click", () => {
+  openExportReviewDialog();
 });
 
 
@@ -1532,6 +1725,7 @@ document.getElementById("importXlsx").addEventListener("change", async (e) => {
     if(!imported.lots.length) throw new Error("No lots were imported.");
     state = imported;
     saveState();
+    saveBaselineSnapshot();
     render();
     alert(`Spreadsheet import complete. Loaded ${state.lots.length} lots and ${state.sales.length} sales.`);
   } catch(err){
@@ -1540,6 +1734,22 @@ document.getElementById("importXlsx").addEventListener("change", async (e) => {
     e.target.value = "";
   }
 });
+
+
+document.getElementById("cancelExportReview").addEventListener("click", () => {
+  const dialog = document.getElementById("exportReviewDialog");
+  if(dialog && dialog.open) dialog.close();
+});
+document.getElementById("confirmExportReview").addEventListener("click", async () => {
+  try{
+    await runSpreadsheetExport();
+    const dialog = document.getElementById("exportReviewDialog");
+    if(dialog && dialog.open) dialog.close();
+  } catch(err){
+    alert("Spreadsheet export failed: " + err.message);
+  }
+});
+
 
 async function disableServiceWorkers(){
   if(!("serviceWorker" in navigator)) return;
@@ -1556,4 +1766,5 @@ async function disableServiceWorkers(){
 }
 
 window.addEventListener("load", disableServiceWorkers);
+ensureBaselineSnapshot();
 render();
