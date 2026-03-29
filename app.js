@@ -1,7 +1,7 @@
-const APP_VERSION = "v17";
+const APP_VERSION = "v18";
 
-const STORE_KEY = "sale-tracker-pwa-v17";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v18";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -362,7 +362,8 @@ function computeCalculatedModel(){
       other.id !== lot.id &&
       other.ticker === lot.ticker &&
       other.buyDate &&
-      Math.abs(daysBetween(other.buyDate, sale.sellDate)) <= 30
+      other.buyDate >= sale.sellDate &&
+      daysBetween(sale.sellDate, other.buyDate) <= 30
     ).sort((a,b) =>
       a.buyDate.localeCompare(b.buyDate) ||
       String(a.id).localeCompare(String(b.id))
@@ -431,6 +432,8 @@ function computeCalculatedModel(){
       adjustedTotalBasis,
       adjustedCostPerShare,
       hasAdjustedBasis: (typeof adjustedCostPerShare === "number" && Math.abs(adjustedCostPerShare - lot.costPerShare) > 0.000001) || basisAdjustmentIn > 0.000001,
+      showWashTag: lotStats.washSale,
+      showAdjustedBasisTag: (((typeof adjustedCostPerShare === "number" && Math.abs(adjustedCostPerShare - lot.costPerShare) > 0.000001) || basisAdjustmentIn > 0.000001) && !lotStats.washSale) || basisAdjustmentIn > 0.000001,
       matchStatus,
       dataEntryStatus: rowStatus(lot, {sharesSold:lotStats.sharesSold, saleProceeds:lotStats.saleProceeds, realizedGainLoss:lotStats.realizedGainLoss, sellDate:lotStats.sellDate, salePricePerShare:lotStats.salePricePerShare}),
       saleGainLossById
@@ -637,8 +640,8 @@ function renderLotCards(target, rows){
         </div>
         <div class="lot-row-right">
           <span class="badge ${statusClass}">${r.dataEntryStatus}</span>
-          ${r.washSale === "Yes" ? `<span class="badge wash">Wash</span>` : ``}
-          ${r.hasAdjustedBasis ? `<span class="badge adj">Adj. Basis</span>` : ``}
+          ${r.showWashTag ? `<span class="badge wash">Wash</span>` : ``}
+          ${r.showAdjustedBasisTag ? `<span class="badge adj">Adj. Basis</span>` : ``}
         </div>
       </div>
     </article>
