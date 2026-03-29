@@ -1,7 +1,7 @@
-const APP_VERSION = "v15";
+const APP_VERSION = "v17";
 
-const STORE_KEY = "sale-tracker-pwa-v15";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10", "sale-tracker-pwa-v9", "sale-tracker-pwa-v8", "sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v17";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -278,30 +278,179 @@ function salesHistoryForLot(lot){
   return rows;
 }
 function salesHistoryTable(lot){
-  const rows = salesHistoryForLot(lot);
+  const model = computeCalculatedModel();
+  const rows = salesHistoryForLot(lot).map((row) => {
+    if(row.type === "sale"){
+      const sale = salesForLot(lot.id).find(s => s.sellDate === row.sellDate && s.sharesSold === row.sharesSold && s.salePricePerShare === row.salePricePerShare);
+      if(sale) row.id = sale.id;
+      if(row.id && model.saleGainLossById[row.id] !== undefined){
+        row.gainLoss = model.saleGainLossById[row.id];
+      }
+    }
+    return row;
+  });
   if(!rows.length){
     return `<div class="empty-mini">No sale activity yet.</div>`;
   }
   const body = rows.map((row) => {
     if(row.type === "open"){
-      return `<tr class="open-row"><td>Open shares</td><td>${num(row.sharesSold)}</td><td></td><td></td><td></td></tr>`;
+      return `<tr class="open-row"><td>Open shares</td><td>${num(row.sharesSold)}</td><td></td><td></td><td></td><td></td></tr>`;
     }
-    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td></tr>`;
+    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td><td><button type="button" class="secondary-btn table-btn" onclick="deleteSale('${row.id}')">Delete</button></td></tr>`;
   }).join("");
-  return `<div class="table-wrap"><table class="sales-table"><thead><tr><th>Sale Date</th><th>Shares</th><th>Sale Price</th><th>Proceeds</th><th>Gain / (Loss)</th></tr></thead><tbody>${body}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="sales-table"><thead><tr><th>Sale Date</th><th>Shares</th><th>Sale Price</th><th>Proceeds</th><th>Gain / (Loss)</th><th>Action</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+
+function computeCalculatedModel(){
+  const lots = [...state.lots].sort(lotSort);
+  const lotMap = new Map(lots.map(lot => [lot.id, lot]));
+  const sales = [...state.sales].sort((a,b) =>
+    (a.sellDate || "").localeCompare(b.sellDate || "") ||
+    String(a.lotId).localeCompare(String(b.lotId)) ||
+    String(a.id).localeCompare(String(b.id))
+  );
+
+  const basisIn = {};
+  const replacementUsage = {};
+  const saleGainLossById = {};
+  const perLot = {};
+
+  for(const lot of lots){
+    perLot[lot.id] = {
+      candidateMatchedShares: 0,
+      candidateReplacementCount: 0,
+      suggestedReplacementLotId: "",
+      appliedReplacementLotIds: new Set(),
+      disallowedWashLoss: 0,
+      lossPerShare: null,
+      matchStatus: "",
+      washSale: false,
+      saleProceeds: 0,
+      realizedGainLoss: 0,
+      sharesSold: 0,
+      sellDate: "",
+      salePricePerShare: null,
+      replacementLotsUsed: new Set()
+    };
+  }
+
+  for(const sale of sales){
+    const lot = lotMap.get(sale.lotId);
+    if(!lot) continue;
+    const lotStats = perLot[lot.id];
+    const basisAdjustmentIn = (basisIn[lot.id] || 0) + (lot.importedBasisAdjustmentIn || 0);
+    const adjustedCostPerShare = typeof lot.importedAdjustedCostPerShare === "number"
+      ? lot.importedAdjustedCostPerShare
+      : (lot.sharesBought ? ((lot.sharesBought * lot.costPerShare) + basisAdjustmentIn) / lot.sharesBought : lot.costPerShare);
+    const gainLoss = sale.sharesSold * (sale.salePricePerShare - adjustedCostPerShare);
+
+    saleGainLossById[sale.id] = gainLoss;
+    lotStats.sharesSold += sale.sharesSold;
+    lotStats.saleProceeds += sale.sharesSold * sale.salePricePerShare;
+    lotStats.realizedGainLoss += gainLoss;
+    lotStats.sellDate = sale.sellDate;
+    lotStats.salePricePerShare = sale.salePricePerShare;
+
+    if(!(gainLoss < 0) || !sale.sellDate) continue;
+
+    let sharesToMatch = sale.sharesSold;
+    const lossPerShare = Math.abs(gainLoss) / sale.sharesSold;
+    lotStats.lossPerShare = lossPerShare;
+
+    const candidates = lots.filter(other =>
+      other.id !== lot.id &&
+      other.ticker === lot.ticker &&
+      other.buyDate &&
+      Math.abs(daysBetween(other.buyDate, sale.sellDate)) <= 30
+    ).sort((a,b) =>
+      a.buyDate.localeCompare(b.buyDate) ||
+      String(a.id).localeCompare(String(b.id))
+    );
+
+    const matchedCandidateIds = [];
+    for(const candidate of candidates){
+      const used = replacementUsage[candidate.id] || 0;
+      const available = Math.max(0, (candidate.sharesBought || 0) - used);
+      if(!(available > 0) || !(sharesToMatch > 0)) continue;
+      const matchedShares = Math.min(sharesToMatch, available);
+      replacementUsage[candidate.id] = used + matchedShares;
+      basisIn[candidate.id] = (basisIn[candidate.id] || 0) + (matchedShares * lossPerShare);
+      sharesToMatch -= matchedShares;
+
+      lotStats.candidateMatchedShares += matchedShares;
+      lotStats.disallowedWashLoss += matchedShares * lossPerShare;
+      lotStats.appliedReplacementLotIds.add(candidate.id);
+      lotStats.replacementLotsUsed.add(candidate.id);
+      matchedCandidateIds.push(candidate.id);
+    }
+
+    lotStats.candidateReplacementCount += matchedCandidateIds.length;
+    if(!lotStats.suggestedReplacementLotId && matchedCandidateIds.length === 1){
+      lotStats.suggestedReplacementLotId = matchedCandidateIds[0];
+    }
+    if(lotStats.candidateMatchedShares > 0){
+      lotStats.washSale = true;
+      lotStats.matchStatus = "Wash loss carried into replacement lot basis";
+    }
+  }
+
+  const rows = lots.map((lot, idx) => {
+    const lotStats = perLot[lot.id];
+    const totalCost = lot.sharesBought * lot.costPerShare;
+    const basisAdjustmentIn = (basisIn[lot.id] || 0) + (lot.importedBasisAdjustmentIn || 0);
+    const adjustedTotalBasis = totalCost + basisAdjustmentIn;
+    const adjustedCostPerShare = typeof lot.importedAdjustedCostPerShare === "number"
+      ? lot.importedAdjustedCostPerShare
+      : (lot.sharesBought ? adjustedTotalBasis / lot.sharesBought : 0);
+    const appliedReplacementLotId = lotStats.appliedReplacementLotIds.size === 1
+      ? [...lotStats.appliedReplacementLotIds][0]
+      : (lotStats.suggestedReplacementLotId || "");
+    const matchStatus = basisAdjustmentIn > 0
+      ? "Replacement lot receiving wash basis"
+      : lotStats.matchStatus;
+
+    return {
+      trackerRow: idx + 1,
+      ...lot,
+      totalCost,
+      saleProceeds: lotStats.sharesSold ? lotStats.saleProceeds : null,
+      realizedGainLoss: lotStats.sharesSold ? lotStats.realizedGainLoss : null,
+      sharesSold: lotStats.sharesSold,
+      sellDate: lotStats.sellDate,
+      salePricePerShare: lotStats.salePricePerShare,
+      washSale: lotStats.washSale ? "Yes" : "No",
+      lotIdText: getDisplayLotId(lot),
+      lossPerShare: lotStats.lossPerShare,
+      candidateMatchedShares: lotStats.candidateMatchedShares,
+      candidateReplacementCount: lotStats.candidateReplacementCount,
+      suggestedReplacementLotId: lotStats.suggestedReplacementLotId,
+      appliedReplacementLotId,
+      disallowedWashLoss: lotStats.disallowedWashLoss,
+      basisAdjustmentIn,
+      adjustedTotalBasis,
+      adjustedCostPerShare,
+      hasAdjustedBasis: (typeof adjustedCostPerShare === "number" && Math.abs(adjustedCostPerShare - lot.costPerShare) > 0.000001) || basisAdjustmentIn > 0.000001,
+      matchStatus,
+      dataEntryStatus: rowStatus(lot, {sharesSold:lotStats.sharesSold, saleProceeds:lotStats.saleProceeds, realizedGainLoss:lotStats.realizedGainLoss, sellDate:lotStats.sellDate, salePricePerShare:lotStats.salePricePerShare}),
+      saleGainLossById
+    };
+  });
+
+  return { rows, saleGainLossById };
 }
 
 function realizedForLot(lot){
-  const sales = salesForLot(lot.id);
-  if(!sales.length) return {sharesSold:0,saleProceeds:null,realizedGainLoss:null,sellDate:"",salePricePerShare:null};
-  let sharesSold=0, saleProceeds=0, realizedGainLoss=0;
-  let last = sales[sales.length-1];
-  for(const s of sales){
-    sharesSold += s.sharesSold;
-    saleProceeds += s.sharesSold * s.salePricePerShare;
-    realizedGainLoss += s.sharesSold * (s.salePricePerShare - lot.costPerShare);
-  }
-  return {sharesSold,saleProceeds,realizedGainLoss,sellDate:last.sellDate,salePricePerShare:last.salePricePerShare};
+  const model = computeCalculatedModel();
+  const row = model.rows.find(r => r.id === lot.id);
+  if(!row) return {sharesSold:0,saleProceeds:null,realizedGainLoss:null,sellDate:"",salePricePerShare:null};
+  return {
+    sharesSold: row.sharesSold || 0,
+    saleProceeds: row.saleProceeds,
+    realizedGainLoss: row.realizedGainLoss,
+    sellDate: row.sellDate || "",
+    salePricePerShare: row.salePricePerShare
+  };
 }
 
 function rowStatus(lot, realized){
@@ -313,81 +462,28 @@ function rowStatus(lot, realized){
 }
 
 function computeWash(lot){
-  const realized = realizedForLot(lot);
-  if(!(realized.sharesSold>0) || !(realized.realizedGainLoss<0) || !realized.sellDate){
+  const row = computeCalculatedModel().rows.find(r => r.id === lot.id);
+  if(!row){
     return {washSale:false,candidateMatchedShares:0,candidateReplacementCount:0,suggestedReplacementLotId:"",appliedReplacementLotId:"",disallowedWashLoss:0,lossPerShare:null,matchStatus:""};
   }
-  const candidates = state.lots.filter(other =>
-    other.id !== lot.id &&
-    other.ticker === lot.ticker &&
-    other.sharesRemaining > 0 &&
-    Math.abs(daysBetween(other.buyDate, realized.sellDate)) <= 30
-  ).sort(lotSort);
-
-  const matched = Math.min(realized.sharesSold, candidates.reduce((s,c)=>s+c.sharesRemaining,0));
-  const lossPerShare = realized.sharesSold ? Math.abs(realized.realizedGainLoss)/realized.sharesSold : 0;
-  const suggested = candidates.length === 1 ? candidates[0].id : "";
-  const disallowed = matched > 0 ? matched * lossPerShare : 0;
-
   return {
-    washSale: disallowed > 0,
-    candidateMatchedShares: matched,
-    candidateReplacementCount: candidates.length,
-    suggestedReplacementLotId: suggested,
-    appliedReplacementLotId: suggested,
-    disallowedWashLoss: disallowed,
-    lossPerShare,
-    matchStatus: disallowed > 0 ? "Review wash match" : ""
+    washSale: row.washSale === "Yes",
+    candidateMatchedShares: row.candidateMatchedShares,
+    candidateReplacementCount: row.candidateReplacementCount,
+    suggestedReplacementLotId: row.suggestedReplacementLotId,
+    appliedReplacementLotId: row.appliedReplacementLotId,
+    disallowedWashLoss: row.disallowedWashLoss,
+    lossPerShare: row.lossPerShare,
+    matchStatus: row.matchStatus || ""
   };
 }
 
 function computedRows(){
-  const lots = [...state.lots].sort(lotSort);
-  const basisIn = {};
-  for(const lot of lots){
-    const wash = computeWash(lot);
-    if(wash.washSale && wash.appliedReplacementLotId){
-      basisIn[wash.appliedReplacementLotId] = (basisIn[wash.appliedReplacementLotId] || 0) + wash.disallowedWashLoss;
-    }
-  }
-  return lots.map((lot, idx) => {
-    const realized = realizedForLot(lot);
-    const wash = computeWash(lot);
-    const totalCost = lot.sharesBought * lot.costPerShare;
-    const basisAdjustmentIn = (basisIn[lot.id] || 0) + (lot.importedBasisAdjustmentIn || 0);
-    const adjustedTotalBasis = totalCost + basisAdjustmentIn;
-    const adjustedCostPerShare = typeof lot.importedAdjustedCostPerShare === "number"
-      ? lot.importedAdjustedCostPerShare
-      : (lot.sharesBought ? adjustedTotalBasis / lot.sharesBought : 0);
-    return {
-      trackerRow: idx + 1,
-      ...lot,
-      totalCost,
-      saleProceeds: realized.saleProceeds,
-      realizedGainLoss: realized.realizedGainLoss,
-      sharesSold: realized.sharesSold,
-      sellDate: realized.sellDate,
-      salePricePerShare: realized.salePricePerShare,
-      washSale: wash.washSale ? "Yes" : "No",
-      lotIdText: getDisplayLotId(lot),
-      lossPerShare: wash.lossPerShare,
-      candidateMatchedShares: wash.candidateMatchedShares,
-      candidateReplacementCount: wash.candidateReplacementCount,
-      suggestedReplacementLotId: wash.suggestedReplacementLotId,
-      appliedReplacementLotId: wash.appliedReplacementLotId,
-      disallowedWashLoss: wash.disallowedWashLoss,
-      basisAdjustmentIn,
-      adjustedTotalBasis,
-      adjustedCostPerShare,
-      hasAdjustedBasis: (typeof adjustedCostPerShare === "number" && Math.abs(adjustedCostPerShare - lot.costPerShare) > 0.000001) || basisAdjustmentIn > 0.000001,
-      matchStatus: basisAdjustmentIn > 0 ? "Replacement lot receiving wash basis" : wash.matchStatus,
-      dataEntryStatus: rowStatus(lot, realized)
-    };
-  });
+  return computeCalculatedModel().rows;
 }
 
-
-function addDays(isoDate, days){
+function addDays
+(isoDate, days){
   if(!isoDate) return "";
   const dt = new Date(isoDate + "T00:00:00");
   dt.setDate(dt.getDate() + days);
@@ -440,14 +536,12 @@ function ytdCapitalSummary(){
   const year = new Date().getFullYear();
   let gains = 0;
   let losses = 0;
-  for(const lot of state.lots){
-    const basisPerShare = (typeof lot.importedAdjustedCostPerShare === "number" && lot.importedAdjustedCostPerShare > 0) ? lot.importedAdjustedCostPerShare : lot.costPerShare;
-    for(const sale of salesForLot(lot.id)){
-      if(!sale.sellDate || Number(sale.sellDate.slice(0,4)) !== year) continue;
-      const gainLoss = sale.sharesSold * (sale.salePricePerShare - basisPerShare);
-      if(gainLoss >= 0) gains += gainLoss;
-      else losses += gainLoss;
-    }
+  const model = computeCalculatedModel();
+  for(const sale of state.sales){
+    if(!sale.sellDate || Number(sale.sellDate.slice(0,4)) !== year) continue;
+    const gainLoss = model.saleGainLossById[sale.id] ?? 0;
+    if(gainLoss >= 0) gains += gainLoss;
+    else losses += gainLoss;
   }
   return {gains, losses, net: gains + losses, year};
 }
@@ -573,7 +667,8 @@ function openLotOverview(lotId){
   `;
   const actions = [];
   actions.push(`<button type="button" class="secondary-btn" onclick="closeDialogs()">Close</button>`);
-  actions.push(`<button type="button" class="secondary-btn" onclick="closeDialogs(); openDetail('${r.id}')">Details</button>`);
+  actions.push(`<button type="button" class="secondary-btn" onclick="openDetail('${r.id}')">Details</button>`);
+  actions.push(`<button type="button" class="secondary-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>`);
   if(r.sharesRemaining > 0){
     actions.push(`<button type="button" class="primary-btn" onclick="closeDialogs(); openSaleDialog('${r.id}')">Record Sale</button>`);
   }
@@ -629,9 +724,13 @@ function openSaleDialog(lotId){
 }
 
 
+let currentDetailLotId = "";
 function openDetail(lotId){
   const r = computedRows().find(x => x.id === lotId);
   if(!r) return;
+  currentDetailLotId = lotId;
+  const summaryBtn = document.getElementById("summaryFromDetail");
+  if(summaryBtn) summaryBtn.style.display = "";
   document.getElementById("detailTitle").textContent = `${r.ticker} Details`;
   document.getElementById("detailBody").innerHTML = `
     <div class="detail-section">
@@ -662,10 +761,68 @@ function openDetail(lotId){
       ${r.matchStatus ? `<p class="lot-sub" style="margin-top:10px;color:#234a73;font-weight:700">${r.matchStatus}</p>` : ``}
     </div>
   `;
+  const detailActions = document.getElementById("detailActions");
+  if(detailActions){
+    detailActions.innerHTML = `
+      <button type="button" class="secondary-btn" id="summaryFromDetail">Summary</button>
+      <button type="button" class="secondary-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>
+      <button type="button" class="primary-btn" id="closeDetail">Done</button>
+    `;
+    document.getElementById("summaryFromDetail").addEventListener("click", () => {
+      const lotIdToOpen = currentDetailLotId;
+      const detailDialog = document.getElementById("detailDialog");
+      if(detailDialog && detailDialog.open) detailDialog.close();
+      if(lotIdToOpen) openLotOverview(lotIdToOpen);
+    }, { once:true });
+    document.getElementById("closeDetail").addEventListener("click", () => {
+      const detailDialog = document.getElementById("detailDialog");
+      if(detailDialog && detailDialog.open) detailDialog.close();
+    }, { once:true });
+  }
   document.getElementById("detailDialog").showModal();
 }
 
+function deleteBuy(lotId){
+  const row = computedRows().find(x => x.id === lotId);
+  if(!row) return;
+  const saleCount = state.sales.filter(s => s.lotId === lotId).length;
+  const warning = saleCount ? ` This will also remove ${saleCount} linked sale${saleCount === 1 ? "" : "s"}.` : "";
+  if(!confirm(`Delete buy lot ${row.ticker} (${row.lotIdText})?${warning}`)) return;
+  state.sales = state.sales.filter(s => s.lotId !== lotId);
+  state.lots = state.lots.filter(l => l.id !== lotId);
+  saveState();
+  closeDialogs();
+  render();
+}
+
+function deleteSale(saleId){
+  const sale = state.sales.find(s => s.id === saleId);
+  if(!sale) return;
+  const lot = state.lots.find(l => l.id === sale.lotId);
+  const lotId = sale.lotId;
+  if(!confirm(`Delete sale dated ${dateFmt(sale.sellDate)} for ${lot ? lot.ticker : "this lot"}?`)) return;
+  if(lot){
+    lot.sharesRemaining = Math.min(lot.sharesBought, (lot.sharesRemaining || 0) + (sale.sharesSold || 0));
+  }
+  state.sales = state.sales.filter(s => s.id !== saleId);
+  saveState();
+  const detailDialog = document.getElementById("detailDialog");
+  const overviewDialog = document.getElementById("overviewDialog");
+  if(detailDialog && detailDialog.open){
+    detailDialog.close();
+    render();
+    openDetail(lotId);
+  } else if(overviewDialog && overviewDialog.open){
+    overviewDialog.close();
+    render();
+    openLotOverview(lotId);
+  } else {
+    render();
+  }
+}
+
 function closeDialogs(){
+  currentDetailLotId = "";
   for(const id of ["lotDialog","saleDialog","detailDialog","infoDialog","overviewDialog"]){
     const dialog = document.getElementById(id);
     if(dialog && dialog.open) dialog.close();
@@ -814,7 +971,6 @@ document.getElementById("addUsBtn").addEventListener("click", () => openLotDialo
 document.getElementById("addIntlBtn").addEventListener("click", () => openLotDialog("International"));
 document.getElementById("cancelLot").addEventListener("click", closeDialogs);
 document.getElementById("cancelSale").addEventListener("click", closeDialogs);
-document.getElementById("closeDetail").addEventListener("click", closeDialogs);
 document.getElementById("infoBtn").addEventListener("click", () => document.getElementById("infoDialog").showModal());
 document.getElementById("closeInfo").addEventListener("click", closeDialogs);
 

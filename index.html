@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Sale Tracker">
   <title>Sale Tracker</title>
   <meta name="sale-tracker-version" content="v16">
-  <link rel="manifest" href="manifest.webmanifest?v=16">
+  <link rel="manifest" href="manifest.webmanifest?v=17">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +17,7 @@
     <div>
       <h1>Sale Tracker</h1>
       <p>Lot-based tracking built for iPhone</p>
-      <p class="build-version">Build v16</p>
+      <p class="build-version">Build v17</p>
     </div>
     <button id="infoBtn" class="icon-btn" aria-label="Info">?</button>
   </header>
@@ -168,7 +168,8 @@
         <h3 id="detailTitle">Lot Details</h3>
       </div>
       <div id="detailBody"></div>
-      <div class="sheet-actions">
+      <div class="sheet-actions" id="detailActions">
+        <button type="button" class="secondary-btn" id="summaryFromDetail" style="display:none;">Summary</button>
         <button type="button" id="closeDetail" class="primary-btn">Done</button>
       </div>
     </div>

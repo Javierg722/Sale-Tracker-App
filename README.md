@@ -1,3 +1,3 @@
-# Sale Tracker PWA v16
+# Sale Tracker v17
 
-v16 update from v14: row line/order polish, left-aligned export button, and all-lots summary font sizing.
+Added summary-back navigation, delete buy/sale actions, and improved wash-sale basis carryforward.
