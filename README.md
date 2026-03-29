@@ -1,4 +1,4 @@
-# Sale Tracker PWA v4
+# Sale Tracker PWA v5
 
 This build now does the two big upgrades you asked for:
 
@@ -10,9 +10,9 @@ This build now does the two big upgrades you asked for:
 - Record Sale
 - Partial sale split-lot workflow
 - Wash Review
-- JSON backup import/export
+- JSON backup import
 - XLSX spreadsheet import from the `Wash Sale Tracker` sheet
-- Restore starter workbook data button
+- XLSX spreadsheet export that writes the current app data into the workbook entry ranges while keeping formulas intact
 
 ## Spreadsheet import behavior
 Use **Import Spreadsheet (.xlsx)** in the Tools tab.
@@ -28,7 +28,12 @@ Expected columns:
 - Shares Remaining
 - Shares Sold
 
+## Spreadsheet export behavior
+Use **Export Spreadsheet (.xlsx)** in the Tools tab.
+The app builds a fresh copy of the included `Sale Tracker.xlsx` template, clears the trade-entry cells in the U.S. and International entry ranges, then writes your current app data back into those rows. Formula columns stay in the workbook.
+
 ## Notes
 - Spreadsheet import replaces the current in-app data with the uploaded workbook data.
+- Spreadsheet export creates a new workbook download from the included template.
 - The app still calculates its own wash-review view from the imported lots and sales.
-- JSON export remains useful as a quick app-only backup.
+- JSON import is still available for app-only recovery if needed.

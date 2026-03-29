@@ -69,20 +69,19 @@
     <section id="toolsTab" class="panel">
       <div class="hero-card">
         <h2>Tools</h2>
-        <p>The app now starts with your actual workbook data. Use spreadsheet import anytime you update the Excel file and want the app refreshed.</p>
+        <p>The app now starts with your actual workbook data. Use spreadsheet import anytime you update the Excel file and want the app refreshed. Export creates a workbook copy with your current app data written into the trade-entry cells while keeping formulas in place.</p>
       </div>
 
       <div class="tool-card">
-        <button id="exportBtn" class="primary-btn full">Export JSON Backup</button>
-        <label class="secondary-btn full file-label">
-          Import JSON Backup
-          <input type="file" id="importJson" accept="application/json" hidden>
-        </label>
+        <button id="exportBtn" class="primary-btn full">Export Spreadsheet (.xlsx)</button>
         <label class="secondary-btn full file-label">
           Import Spreadsheet (.xlsx)
           <input type="file" id="importXlsx" accept=".xlsx,.xlsm,.xls" hidden>
         </label>
-        <button id="resetStarterBtn" class="secondary-btn full">Restore Starter Workbook Data</button>
+        <label class="secondary-btn full file-label">
+          Import JSON Backup
+          <input type="file" id="importJson" accept="application/json" hidden>
+        </label>
       </div>
 
       <div class="tool-card">

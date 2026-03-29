@@ -1,4 +1,9 @@
-const STORE_KEY = "sale-tracker-pwa-v4";
+const STORE_KEY = "sale-tracker-pwa-v5";
+const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
+const US_START_ROW = 18;
+const US_END_ROW = 378;
+const INTL_START_ROW = 381;
+const INTL_END_ROW = 796;
 const intlTickers = new Set(["VXUS","IXUS","SCHF","FTIHX"]);
 const DEFAULT_STATE = {"lots":[{"id":"row-18","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":580.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-19","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":615.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-20","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":580.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-21","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":30.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-22","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":585.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-23","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":562.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-24","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":580.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-25","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":580.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-26","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":351.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-27","ticker":"ITOT","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.883,"costPerShare":150.63,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-28","ticker":"ITOT","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":143.0,"costPerShare":146.76,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-29","ticker":"SCHB","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.872,"costPerShare":25.95183486238532,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-30","ticker":"SCHB","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":813.0,"costPerShare":25.95,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-31","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-10-30","sharesBought":1110.0,"costPerShare":30.53,"sharesRemaining":1110.0,"parentLotId":null,"note":""},{"id":"row-32","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.251,"costPerShare":331.8326693227092,"sharesRemaining":0.251,"parentLotId":null,"note":""},{"id":"row-33","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":212.0,"costPerShare":331.8,"sharesRemaining":212.0,"parentLotId":null,"note":""},{"id":"row-34","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-18","sharesBought":0.993,"costPerShare":614.7331319234642,"sharesRemaining":0.993,"parentLotId":null,"note":""},{"id":"row-35","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-18","sharesBought":40.0,"costPerShare":614.735,"sharesRemaining":40.0,"parentLotId":null,"note":""},{"id":"row-36","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-20","sharesBought":34.0,"costPerShare":602.785,"sharesRemaining":34.0,"parentLotId":null,"note":""},{"id":"row-37","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-20","sharesBought":0.135,"costPerShare":602.8148148148148,"sharesRemaining":0.135,"parentLotId":null,"note":""},{"id":"row-38","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-27","sharesBought":0.736,"costPerShare":314.3478260869566,"sharesRemaining":0.736,"parentLotId":null,"note":""},{"id":"row-39","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-27","sharesBought":63.0,"costPerShare":314.35,"sharesRemaining":63.0,"parentLotId":null,"note":""},{"id":"row-381","ticker":"IXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":157.003,"costPerShare":88.55,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-382","ticker":"IXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":0.997,"costPerShare":93.56,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-383","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":178.0,"costPerShare":79.01988764044944,"sharesRemaining":178.0,"parentLotId":null,"note":""},{"id":"row-384","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":0.182,"costPerShare":79.01098901098902,"sharesRemaining":0.182,"parentLotId":null,"note":""},{"id":"row-385","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-20","sharesBought":177.0,"costPerShare":74.63988700564971,"sharesRemaining":177.0,"parentLotId":null,"note":""},{"id":"row-386","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-20","sharesBought":0.98,"costPerShare":74.63265306122449,"sharesRemaining":0.98,"parentLotId":null,"note":""}],"sales":[{"id":"sale-18","lotId":"row-18","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.15},{"id":"sale-19","lotId":"row-19","sellDate":"2026-03-09","sharesSold":615.0,"salePricePerShare":38.15},{"id":"sale-20","lotId":"row-20","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.15},{"id":"sale-21","lotId":"row-21","sellDate":"2026-03-09","sharesSold":30.0,"salePricePerShare":38.0},{"id":"sale-22","lotId":"row-22","sellDate":"2026-03-09","sharesSold":585.0,"salePricePerShare":38.0},{"id":"sale-23","lotId":"row-23","sellDate":"2026-03-09","sharesSold":562.0,"salePricePerShare":38.0},{"id":"sale-24","lotId":"row-24","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.0},{"id":"sale-25","lotId":"row-25","sellDate":"2026-03-17","sharesSold":580.0,"salePricePerShare":37.79},{"id":"sale-26","lotId":"row-26","sellDate":"2026-03-17","sharesSold":351.0,"salePricePerShare":37.79},{"id":"sale-27","lotId":"row-27","sellDate":"2026-03-20","sharesSold":0.883,"salePricePerShare":142.93},{"id":"sale-28","lotId":"row-28","sellDate":"2026-03-20","sharesSold":143.0,"salePricePerShare":142.93},{"id":"sale-29","lotId":"row-29","sellDate":"2026-03-27","sharesSold":0.872,"salePricePerShare":24.61009174311927},{"id":"sale-30","lotId":"row-30","sellDate":"2026-03-27","sharesSold":813.0,"salePricePerShare":24.60029520295203},{"id":"sale-381","lotId":"row-381","sellDate":"2026-03-20","sharesSold":157.003,"salePricePerShare":83.55},{"id":"sale-382","lotId":"row-382","sellDate":"2026-03-20","sharesSold":0.997,"salePricePerShare":83.55}]};
 
@@ -35,6 +40,92 @@ function dateToIso(value){
   if(!Number.isNaN(parsedDate.getTime())) return parsedDate.toISOString().slice(0,10);
   return "";
 }
+
+function excelDateCell(isoDate){
+  if(!isoDate) return null;
+  const dt = new Date(isoDate + "T00:00:00");
+  return { t:"d", v: dt, z:"m/d/yyyy" };
+}
+function numberCell(value){
+  return typeof value === "number" && Number.isFinite(value) ? { t:"n", v:value } : null;
+}
+function textCell(value){
+  return value ? { t:"s", v:String(value) } : null;
+}
+function ensureCell(sheet, address){
+  if(!sheet[address]) sheet[address] = { t:"z", v:null };
+  return sheet[address];
+}
+function overwriteCell(sheet, address, cell){
+  if(cell){
+    const existing = sheet[address] || {};
+    sheet[address] = { ...existing, ...cell };
+    if(cell.t !== "s") delete sheet[address].w;
+  } else {
+    const existing = sheet[address] || {};
+    sheet[address] = { ...existing, t:"z", v:null };
+    delete sheet[address].w;
+  }
+}
+function clearEntryRange(sheet, startRow, endRow){
+  for(let row = startRow; row <= endRow; row += 1){
+    for(const col of ["A","B","C","D","E","F","G","R"]){
+      overwriteCell(sheet, `${col}${row}`, null);
+    }
+  }
+}
+function rowsForExport(){
+  return state.lots.map(lot => {
+    const sale = salesForLot(lot.id).sort((a,b)=>a.sellDate.localeCompare(b.sellDate))[0] || null;
+    return {
+      ticker: lot.ticker,
+      sleeve: lot.sleeve,
+      buyDate: lot.buyDate,
+      sharesBought: lot.sharesBought,
+      costPerShare: lot.costPerShare,
+      sellDate: sale?.sellDate || "",
+      salePricePerShare: sale?.salePricePerShare ?? null,
+      sharesRemaining: lot.sharesRemaining,
+      note: lot.note || ""
+    };
+  }).sort((a,b) => lotSort(a,b));
+}
+async function buildExportWorkbook(){
+  const response = await fetch(TEMPLATE_WORKBOOK_PATH, { cache:"no-store" });
+  if(!response.ok) throw new Error("Could not load the workbook template bundled with the app.");
+  const workbook = XLSX.read(await response.arrayBuffer(), { type:"array", cellDates:true, cellStyles:true });
+  const sheet = workbook.Sheets["Wash Sale Tracker"] || workbook.Sheets[workbook.SheetNames[0]];
+  if(!sheet) throw new Error("Workbook template does not contain the Wash Sale Tracker sheet.");
+
+  const usRows = rowsForExport().filter(r => r.sleeve === "U.S.");
+  const intlRows = rowsForExport().filter(r => r.sleeve === "International");
+  const usCapacity = US_END_ROW - US_START_ROW + 1;
+  const intlCapacity = INTL_END_ROW - INTL_START_ROW + 1;
+  if(usRows.length > usCapacity) throw new Error(`Too many U.S. lots to export (${usRows.length}). Workbook capacity is ${usCapacity}.`);
+  if(intlRows.length > intlCapacity) throw new Error(`Too many International lots to export (${intlRows.length}). Workbook capacity is ${intlCapacity}.`);
+
+  clearEntryRange(sheet, US_START_ROW, US_END_ROW);
+  clearEntryRange(sheet, INTL_START_ROW, INTL_END_ROW);
+
+  function writeRows(rows, startRow){
+    rows.forEach((row, index) => {
+      const excelRow = startRow + index;
+      overwriteCell(sheet, `A${excelRow}`, textCell(row.ticker));
+      overwriteCell(sheet, `B${excelRow}`, excelDateCell(row.buyDate));
+      overwriteCell(sheet, `C${excelRow}`, numberCell(row.sharesBought));
+      overwriteCell(sheet, `D${excelRow}`, numberCell(row.costPerShare));
+      overwriteCell(sheet, `E${excelRow}`, excelDateCell(row.sellDate));
+      overwriteCell(sheet, `F${excelRow}`, numberCell(row.salePricePerShare));
+      overwriteCell(sheet, `G${excelRow}`, numberCell(row.sharesRemaining));
+      overwriteCell(sheet, `R${excelRow}`, textCell(row.note));
+    });
+  }
+
+  writeRows(usRows, US_START_ROW);
+  writeRows(intlRows, INTL_START_ROW);
+  return workbook;
+}
+
 function normalizeLot(raw, index){
   const ticker = String(raw?.ticker || "").trim().toUpperCase();
   const buyDate = dateToIso(raw?.buyDate);
@@ -456,13 +547,14 @@ document.getElementById("saleForm").addEventListener("submit", (e) => {
   render();
 });
 
-document.getElementById("exportBtn").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "sale-tracker-export.json";
-  a.click();
-  URL.revokeObjectURL(a.href);
+document.getElementById("exportBtn").addEventListener("click", async () => {
+  try{
+    const workbook = await buildExportWorkbook();
+    const dateStamp = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(workbook, `Sale Tracker - app export - ${dateStamp}.xlsx`, { cellStyles:true });
+  } catch(err){
+    alert("Spreadsheet export failed: " + err.message);
+  }
 });
 
 document.getElementById("importJson").addEventListener("change", async (e) => {
@@ -498,14 +590,6 @@ document.getElementById("importXlsx").addEventListener("change", async (e) => {
   } finally {
     e.target.value = "";
   }
-});
-
-document.getElementById("resetStarterBtn").addEventListener("click", () => {
-  if(!confirm("Replace the current app data with the starter workbook data from this build?")) return;
-  state = normalizeState(deepClone(DEFAULT_STATE));
-  saveState();
-  render();
-  alert("Starter workbook data restored.");
 });
 
 if("serviceWorker" in navigator){
