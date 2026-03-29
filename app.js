@@ -1,7 +1,7 @@
-const APP_VERSION = "v23";
+const APP_VERSION = "v24";
 
-const STORE_KEY = "sale-tracker-pwa-v23";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v24";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -14,7 +14,7 @@ let state = loadState();
 seedIfEmpty();
 
 function uid(){ return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2); }
-function createEmptyState(){ return {lots:[],sales:[]}; }
+function createEmptyState(){ return {lots:[],sales:[],washMatches:[]}; }
 function deepClone(value){ return JSON.parse(JSON.stringify(value)); }
 function loadState(){
   try {
@@ -172,6 +172,106 @@ async function buildExportWorkbook(){
 
 
 
+
+function getLotById(lotId){ return state.lots.find(l => l.id === lotId); }
+function displayLotIdById(lotId){
+  const lot = getLotById(lotId);
+  return lot ? getDisplayLotId(lot) : String(lotId || "");
+}
+function sourceMatchedSharesMap(){
+  const map = {};
+  for(const match of (state.washMatches || [])){
+    map[match.sourceLotId] = (map[match.sourceLotId] || 0) + (match.matchedShares || 0);
+  }
+  return map;
+}
+function replacementMatchesForLot(lotId){
+  return (state.washMatches || []).filter(m => m.replacementLotId === lotId);
+}
+function sourceMatchesForLot(lotId){
+  return (state.washMatches || []).filter(m => m.sourceLotId === lotId);
+}
+function candidateLossLotsForReplacement(ticker, buyDate, sharesBought, excludeReplacementLotId){
+  const model = computeCalculatedModel();
+  const matchedMap = sourceMatchedSharesMap();
+  const rows = model.rows.filter(row =>
+    row.ticker === ticker &&
+    row.id !== excludeReplacementLotId &&
+    row.sellDate &&
+    row.realizedGainLoss < 0 &&
+    buyDate >= row.sellDate &&
+    daysBetween(row.sellDate, buyDate) <= 30
+  ).sort((a,b) =>
+    (a.sellDate || "").localeCompare(b.sellDate || "") ||
+    (a.buyDate || "").localeCompare(b.buyDate || "") ||
+    String(a.id).localeCompare(String(b.id))
+  );
+  let remainingBuyShares = sharesBought || 0;
+  const candidates = [];
+  for(const row of rows){
+    const soldShares = row.sharesSold || 0;
+    const alreadyMatched = matchedMap[row.id] || 0;
+    const availableShares = Math.max(0, soldShares - alreadyMatched);
+    if(!(availableShares > 0) || !(remainingBuyShares > 0)) continue;
+    const autoMatchShares = Math.min(availableShares, remainingBuyShares);
+    remainingBuyShares -= autoMatchShares;
+    const lossPerShare = row.lossPerShare || (soldShares ? Math.abs(row.realizedGainLoss || 0) / soldShares : 0);
+    candidates.push({
+      sourceLotId: row.id,
+      sourceLotDisplayId: row.lotIdText,
+      sourceSellDate: row.sellDate,
+      availableShares,
+      lossPerShare,
+      autoMatchShares
+    });
+  }
+  return candidates;
+}
+let pendingBuyDraft = null;
+function renderWashMatchDialog(){
+  const target = document.getElementById("washMatchTable");
+  const total = document.getElementById("washMatchTotal");
+  if(!target || !pendingBuyDraft) return;
+  const rows = pendingBuyDraft.candidates || [];
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table match-table"><thead><tr><th>Loss Lot</th><th>Shares Available</th><th>Loss/Share</th><th>Match Shares</th></tr></thead><tbody>${
+    rows.map((row, idx) => `<tr>
+      <td>${row.sourceLotDisplayId}</td>
+      <td>${num(row.availableShares)}</td>
+      <td>${currency(row.lossPerShare)}</td>
+      <td><input type="number" min="0" step="0.0001" max="${row.availableShares}" data-match-index="${idx}" value="${row.autoMatchShares}"></td>
+    </tr>`).join("")
+  }</tbody></table></div><p class="match-help">FIFO amounts are prefilled. Adjust them if you want to override the default matching.</p>`;
+  const update = () => {
+    let sum = 0;
+    target.querySelectorAll('input[data-match-index]').forEach(inp => {
+      const idx = Number(inp.dataset.matchIndex);
+      const max = rows[idx].availableShares;
+      let v = Number(inp.value);
+      if(!Number.isFinite(v) || v < 0) v = 0;
+      if(v > max) v = max;
+      inp.value = v ? String(v) : "";
+      sum += v;
+    });
+    total.textContent = `Matched Shares: ${num(sum)} / ${num(pendingBuyDraft.lot.sharesBought)}`;
+    total.style.color = sum > pendingBuyDraft.lot.sharesBought + 0.000001 ? 'var(--danger)' : 'var(--blue2)';
+  };
+  target.querySelectorAll('input[data-match-index]').forEach(inp => inp.addEventListener('input', update));
+  update();
+}
+function finalizeBuyWithMatches(matchRecords){
+  if(!pendingBuyDraft) return;
+  const lot = pendingBuyDraft.lot;
+  state.lots.push(lot);
+  if(!Array.isArray(state.washMatches)) state.washMatches = [];
+  state.washMatches.push(...matchRecords);
+  sortLots();
+  saveState();
+  pendingBuyDraft = null;
+  resetLotDialogMode();
+  closeDialogs();
+  render();
+}
+
 function numericLotToken(value){
   const n = toNumber(value);
   if(n === null) return "";
@@ -222,6 +322,27 @@ function normalizeLot(raw, index){
     note: raw?.note ? String(raw.note) : ""
   };
 }
+
+function normalizeWashMatch(raw, index, lotIds){
+  const sourceLotId = String(raw?.sourceLotId || "").trim();
+  const replacementLotId = String(raw?.replacementLotId || "").trim();
+  const matchedShares = toNumber(raw?.matchedShares);
+  const lossPerShare = toNumber(raw?.lossPerShare);
+  const disallowedLoss = toNumber(raw?.disallowedLoss);
+  if(!sourceLotId || !replacementLotId || !lotIds.has(sourceLotId) || !lotIds.has(replacementLotId)) return null;
+  if(!(matchedShares > 0)) return null;
+  return {
+    id: String(raw?.id || `wash-${index+1}`),
+    sourceLotId,
+    replacementLotId,
+    matchedShares,
+    lossPerShare: lossPerShare ?? null,
+    disallowedLoss: disallowedLoss ?? ((lossPerShare ?? 0) * matchedShares),
+    sourceSellDate: dateToIso(raw?.sourceSellDate),
+    replacementBuyDate: dateToIso(raw?.replacementBuyDate)
+  };
+}
+
 function normalizeSale(raw, index, lotIds){
   const lotId = String(raw?.lotId || "").trim();
   const sellDate = dateToIso(raw?.sellDate);
@@ -256,9 +377,14 @@ function normalizeState(raw){
       if(normalized) remappedSales.push(normalized);
     });
   }
+  const rootIdsForWash = new Set(rootLots.map(l => l.id));
+  const washMatches = Array.isArray(raw?.washMatches)
+    ? raw.washMatches.map((match, idx) => normalizeWashMatch(match, idx, rootIdsForWash)).filter(Boolean)
+    : [];
   return {
     lots: rootLots.sort(lotSort),
-    sales: remappedSales.sort((a,b) => (a.sellDate || "").localeCompare(b.sellDate || ""))
+    sales: remappedSales.sort((a,b) => (a.sellDate || "").localeCompare(b.sellDate || "")),
+    washMatches
   };
 }
 
@@ -272,7 +398,7 @@ function seedIfEmpty(){
 function salesForLot(lotId){ return state.sales.filter(s => s.lotId===lotId).sort((a,b)=>a.sellDate.localeCompare(b.sellDate)); }
 
 function getDisplayLotId(lot){
-  return normalizeLotIdText(lot.lotIdText, lot.ticker, lot.buyDate, lot.costPerShare);
+  return normalizeLotIdText(lot.lotIdText, lot.ticker, lot.buyDate, lot.sharesBought, lot.costPerShare);
 }
 function hasAdjustedBasis(row){
   if(typeof row.adjustedCostPerShare === "number" && typeof row.costPerShare === "number"){
@@ -343,8 +469,25 @@ function computeCalculatedModel(){
   const basisIn = {};
   const basisSourceLotIds = {};
   const replacementUsage = {};
+  const explicitSourceUsage = {};
+  const explicitReplacementIdsBySource = {};
   const saleGainLossById = {};
   const perLot = {};
+
+  for(const match of (state.washMatches || [])){
+    const sourceLot = lotMap.get(match.sourceLotId);
+    const replacementLot = lotMap.get(match.replacementLotId);
+    if(!sourceLot || !replacementLot) continue;
+    const matchedShares = Math.max(0, match.matchedShares || 0);
+    const lossPerShare = Math.max(0, match.lossPerShare || ((matchedShares > 0 && match.disallowedLoss) ? match.disallowedLoss / matchedShares : 0));
+    const disallowedLoss = match.disallowedLoss ?? (matchedShares * lossPerShare);
+    explicitSourceUsage[match.sourceLotId] = (explicitSourceUsage[match.sourceLotId] || 0) + matchedShares;
+    basisIn[match.replacementLotId] = (basisIn[match.replacementLotId] || 0) + disallowedLoss;
+    if(!basisSourceLotIds[match.replacementLotId]) basisSourceLotIds[match.replacementLotId] = new Set();
+    basisSourceLotIds[match.replacementLotId].add(match.sourceLotId);
+    if(!explicitReplacementIdsBySource[match.sourceLotId]) explicitReplacementIdsBySource[match.sourceLotId] = new Set();
+    explicitReplacementIdsBySource[match.sourceLotId].add(match.replacementLotId);
+  }
 
   for(const lot of lots){
     perLot[lot.id] = {
@@ -384,10 +527,27 @@ function computeCalculatedModel(){
 
     if(!(gainLoss < 0) || !sale.sellDate) continue;
 
-    let sharesToMatch = sale.sharesSold;
     const lossPerShare = Math.abs(gainLoss) / sale.sharesSold;
     lotStats.lossPerShare = lossPerShare;
 
+    const explicitMatchedShares = explicitSourceUsage[lot.id] || 0;
+    const explicitReplacementIds = [...(explicitReplacementIdsBySource[lot.id] || new Set())];
+    if(explicitMatchedShares > 0){
+      lotStats.candidateMatchedShares += explicitMatchedShares;
+      lotStats.disallowedWashLoss += explicitMatchedShares * lossPerShare;
+      explicitReplacementIds.forEach(id => {
+        lotStats.appliedReplacementLotIds.add(id);
+        lotStats.replacementLotsUsed.add(id);
+      });
+      lotStats.candidateReplacementCount += explicitReplacementIds.length;
+      if(!lotStats.suggestedReplacementLotId && explicitReplacementIds.length === 1){
+        lotStats.suggestedReplacementLotId = explicitReplacementIds[0];
+      }
+      lotStats.washSale = true;
+      lotStats.matchStatus = "Wash loss carried into replacement lot basis";
+    }
+
+    let sharesToMatch = Math.max(0, sale.sharesSold - explicitMatchedShares);
     const candidates = lots.filter(other =>
       other.id !== lot.id &&
       other.ticker === lot.ticker &&
@@ -407,6 +567,8 @@ function computeCalculatedModel(){
       const matchedShares = Math.min(sharesToMatch, available);
       replacementUsage[candidate.id] = used + matchedShares;
       basisIn[candidate.id] = (basisIn[candidate.id] || 0) + (matchedShares * lossPerShare);
+      if(!basisSourceLotIds[candidate.id]) basisSourceLotIds[candidate.id] = new Set();
+      basisSourceLotIds[candidate.id].add(lot.id);
       sharesToMatch -= matchedShares;
 
       lotStats.candidateMatchedShares += matchedShares;
@@ -417,7 +579,7 @@ function computeCalculatedModel(){
     }
 
     lotStats.candidateReplacementCount += matchedCandidateIds.length;
-    if(!lotStats.suggestedReplacementLotId && matchedCandidateIds.length === 1){
+    if(!lotStats.suggestedReplacementLotId && matchedCandidateIds.length === 1 && explicitReplacementIds.length === 0){
       lotStats.suggestedReplacementLotId = matchedCandidateIds[0];
     }
     if(lotStats.candidateMatchedShares > 0){
@@ -442,11 +604,11 @@ function computeCalculatedModel(){
     let matchStatus = "";
     if(basisAdjustmentIn > 0){
       matchStatus = sourceWashLotIds.length
-        ? `Replacement lot receiving wash basis from ${sourceWashLotIds.join(", ")}`
+        ? `Replacement lot receiving wash basis: ${sourceWashLotIds.map(id => displayLotIdById(id)).join(" & ")}`
         : "Replacement lot receiving wash basis";
     } else if(lotStats.matchStatus){
       matchStatus = appliedReplacementLotIds.length
-        ? `Wash loss carried into replacement lot basis: ${appliedReplacementLotIds.join(", ")}`
+        ? `Wash loss carried into replacement lot basis: ${appliedReplacementLotIds.map(id => displayLotIdById(id)).join(" & ")}`
         : lotStats.matchStatus;
     }
 
@@ -949,7 +1111,7 @@ function deleteSale(saleId){
 
 function closeDialogs(){
   currentDetailLotId = "";
-  for(const id of ["lotDialog","saleDialog","detailDialog","infoDialog","overviewDialog"]){
+  for(const id of ["lotDialog","saleDialog","detailDialog","infoDialog","overviewDialog","washMatchDialog"]){
     const dialog = document.getElementById(id);
     if(dialog && dialog.open) dialog.close();
   }
@@ -1100,6 +1262,42 @@ document.getElementById("cancelLot").addEventListener("click", () => { resetLotD
 document.getElementById("cancelSale").addEventListener("click", () => { resetSaleDialogMode(); closeDialogs(); });
 document.getElementById("infoBtn").addEventListener("click", () => document.getElementById("infoDialog").showModal());
 document.getElementById("closeInfo").addEventListener("click", closeDialogs);
+
+document.getElementById("skipWashMatch").addEventListener("click", () => {
+  if(!pendingBuyDraft) return;
+  finalizeBuyWithMatches([]);
+});
+document.getElementById("washMatchForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if(!pendingBuyDraft) return;
+  const inputs = [...document.querySelectorAll('#washMatchTable input[data-match-index]')];
+  let total = 0;
+  const records = [];
+  for(const input of inputs){
+    const idx = Number(input.dataset.matchIndex);
+    const candidate = pendingBuyDraft.candidates[idx];
+    if(!candidate) continue;
+    let matchedShares = Number(input.value);
+    if(!Number.isFinite(matchedShares) || matchedShares <= 0) continue;
+    matchedShares = Math.min(candidate.availableShares, matchedShares);
+    total += matchedShares;
+    records.push({
+      id: uid(),
+      sourceLotId: candidate.sourceLotId,
+      replacementLotId: pendingBuyDraft.lot.id,
+      matchedShares,
+      lossPerShare: candidate.lossPerShare,
+      disallowedLoss: matchedShares * candidate.lossPerShare,
+      sourceSellDate: candidate.sourceSellDate,
+      replacementBuyDate: pendingBuyDraft.lot.buyDate
+    });
+  }
+  if(total > pendingBuyDraft.lot.sharesBought + 0.000001){
+    alert("Matched shares cannot exceed replacement shares bought.");
+    return;
+  }
+  finalizeBuyWithMatches(records);
+});
 ensureEditFields();
 resetLotDialogMode();
 resetSaleDialogMode();
@@ -1135,12 +1333,26 @@ document.getElementById("lotForm").addEventListener("submit", (e) => {
       sharesBought,
       costPerShare,
       note,
-      lotIdText: worksheetLotIdText(ticker,buyDate,sharesBought,costPerShare),
-      sharesRemaining: Math.max(0, sharesBought - soldShares)
+      sharesRemaining: Math.max(0, sharesBought - soldShares),
+      lotIdText: worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare)
     };
-  } else {
-    state.lots.push({id:uid(),ticker,sleeve,buyDate,sharesBought,costPerShare,sharesRemaining:sharesBought,parentLotId:null,lotIdText: worksheetLotIdText(ticker,buyDate,sharesBought,costPerShare),note});
+    sortLots();
+    saveState();
+    resetLotDialogMode();
+    closeDialogs();
+    render();
+    return;
   }
+  const lot = {id:uid(),ticker,sleeve,buyDate,sharesBought,costPerShare,sharesRemaining:sharesBought,parentLotId:null,note,lotIdText:worksheetLotIdText(ticker,buyDate,sharesBought,costPerShare)};
+  const candidates = candidateLossLotsForReplacement(ticker, buyDate, sharesBought, null);
+  if(candidates.length){
+    pendingBuyDraft = { lot, candidates };
+    document.getElementById("washMatchContext").textContent = `${lot.lotIdText} • ${num(sharesBought)} replacement shares available`;
+    renderWashMatchDialog();
+    document.getElementById("washMatchDialog").showModal();
+    return;
+  }
+  state.lots.push(lot);
   sortLots();
   saveState();
   resetLotDialogMode();

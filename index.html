@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Sale Tracker">
   <title>Sale Tracker</title>
-  <meta name="sale-tracker-version" content="v20">
-  <link rel="manifest" href="manifest.webmanifest?v=23">
+  <meta name="sale-tracker-version" content="v24">
+  <link rel="manifest" href="manifest.webmanifest?v=24">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +17,7 @@
     <div>
       <h1>Sale Tracker</h1>
       <p>Lot-based tracking built for iPhone</p>
-      <p class="build-version">Build v23</p>
+      <p class="build-version">Build v24</p>
     </div>
     <button id="infoBtn" class="icon-btn" aria-label="Info">?</button>
   </header>
@@ -158,6 +158,22 @@
       <div class="sheet-actions">
         <button type="button" id="cancelSale" class="secondary-btn">Cancel</button>
         <button type="submit" class="primary-btn">Save Sale</button>
+      </div>
+    </form>
+  </dialog>
+
+
+  <dialog id="washMatchDialog" class="sheet">
+    <form id="washMatchForm" class="sheet-content">
+      <div class="sheet-head">
+        <h3>Match Replacement Shares to Wash Lots</h3>
+        <p id="washMatchContext" class="muted"></p>
+      </div>
+      <div id="washMatchTable"></div>
+      <p id="washMatchTotal" class="match-total"></p>
+      <div class="sheet-actions">
+        <button type="button" id="skipWashMatch" class="secondary-btn">Skip Matching</button>
+        <button type="submit" class="primary-btn">Apply Match</button>
       </div>
     </form>
   </dialog>
