@@ -1,7 +1,7 @@
-const APP_VERSION = "v13";
+const APP_VERSION = "v15";
 
-const STORE_KEY = "sale-tracker-pwa-v13";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10", "sale-tracker-pwa-v9", "sale-tracker-pwa-v8", "sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v15";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -538,8 +538,8 @@ function renderLotCards(target, rows){
     <article class="lot-row" data-lot-id="${r.id}" role="button" tabindex="0" aria-label="Open ${r.ticker} lot">
       <div class="lot-row-main">
         <div class="lot-row-left">
-          <div class="lot-row-title">${r.ticker}</div>
-          <div class="lot-row-sub">${dateFmt(r.buyDate)} • ${num(r.sharesRemaining)} remaining</div>
+          <div class="lot-row-title">${r.ticker} <span class="lot-row-inline-meta">- ${dateFmt(r.buyDate)} - ${num(r.sharesRemaining)} remaining</span></div>
+          <div class="lot-row-lotid">Lot ${r.lotIdText}</div>
         </div>
         <div class="lot-row-right">
           <span class="badge ${statusClass}">${r.dataEntryStatus}</span>
@@ -547,7 +547,6 @@ function renderLotCards(target, rows){
           ${r.hasAdjustedBasis ? `<span class="badge adj">Adj. Basis</span>` : ``}
         </div>
       </div>
-      <div class="lot-row-lotid">Lot ${r.lotIdText}</div>
     </article>
   `}).join("");
 }

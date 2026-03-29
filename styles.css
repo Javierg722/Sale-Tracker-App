@@ -202,3 +202,75 @@ input{
 .lot-row-lotid{margin-top:8px;font-size:12px;color:var(--muted);word-break:break-word;}
 .summary-table th,.summary-table td{text-align:center;}
 .summary-table.compact th,.summary-table.compact td{text-align:center;}
+
+
+/* v15 row + tools polish */
+#toolsTab .tool-card:first-of-type{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:10px;
+}
+#toolsTab #exportBtn,
+#toolsTab .file-label{
+  width:auto;
+  min-width:230px;
+  justify-content:flex-start;
+  text-align:left;
+}
+
+.lot-row{
+  padding-top:12px;
+  padding-bottom:12px;
+}
+.lot-row-main{
+  align-items:flex-start;
+}
+.lot-row-left{
+  padding-right:120px;
+  min-width:0;
+}
+.lot-row-title{
+  font-size:18px;
+  line-height:1.25;
+}
+.lot-row-inline-meta{
+  font-size:18px;
+  font-weight:500;
+  color:var(--muted);
+}
+.lot-row-lotid{
+  margin-top:6px;
+  font-size:18px;
+  line-height:1.25;
+  color:var(--muted);
+  word-break:break-word;
+}
+.lot-row-sub{
+  display:none;
+}
+.lot-row-right{
+  top:10px;
+}
+.section-head h2{
+  font-size:20px;
+}
+.lot-row,
+.lot-row *{
+  font-size:18px;
+}
+.lot-row-title,
+.lot-row-title *{
+  font-size:18px;
+}
+.lot-row-lotid{
+  font-size:18px !important;
+}
+.summary-table th,.summary-table td{
+  text-align:center;
+  vertical-align:middle;
+}
+.summary-table tbody td{
+  padding-left:12px;
+  padding-right:12px;
+}

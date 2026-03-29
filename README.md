@@ -1,3 +1,3 @@
-# Sale Tracker PWA v14
+# Sale Tracker PWA v15
 
-UI polish update: green open-lot tag, lot ID moved to its own bottom line, and centered summary tables.
+Row layout polish, tool alignment, and summary table centering.
