@@ -1,7 +1,7 @@
-const APP_VERSION = "v22";
+const APP_VERSION = "v23";
 
-const STORE_KEY = "sale-tracker-pwa-v22";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v23";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -175,7 +175,11 @@ async function buildExportWorkbook(){
 function numericLotToken(value){
   const n = toNumber(value);
   if(n === null) return "";
-  const normalized = String(n);
+  const rounded = Math.round((n + Number.EPSILON) * 1000) / 1000;
+  if(Math.abs(rounded - Math.round(rounded)) < 0.0000001){
+    return String(Math.round(rounded));
+  }
+  const normalized = rounded.toFixed(3).replace(/0+$/,"").replace(/\.$/,"");
   return normalized.replace(/\./g, "D");
 }
 function worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare){
@@ -321,7 +325,7 @@ function salesHistoryTable(lot){
     if(row.type === "open"){
       return `<tr class="open-row"><td>Open shares</td><td>${num(row.sharesSold)}</td><td></td><td></td><td></td><td></td></tr>`;
     }
-    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td><td><button type="button" class="secondary-btn table-btn" onclick="deleteSale('${row.id}')">Delete</button> <button type="button" class="secondary-btn table-btn" onclick="openEditSaleDialog('${row.id}')">Edit</button></td></tr>`;
+    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td><td><button type="button" class="secondary-btn table-btn delete-btn" onclick="deleteSale('${row.id}')">Delete</button> <button type="button" class="secondary-btn table-btn edit-btn" onclick="openEditSaleDialog('${row.id}')">Edit</button></td></tr>`;
   }).join("");
   return `<div class="table-wrap"><table class="sales-table"><thead><tr><th>Sale Date</th><th>Shares</th><th>Sale Price</th><th>Proceeds</th><th>Gain / (Loss)</th><th>Action</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }
@@ -337,6 +341,7 @@ function computeCalculatedModel(){
   );
 
   const basisIn = {};
+  const basisSourceLotIds = {};
   const replacementUsage = {};
   const saleGainLossById = {};
   const perLot = {};
@@ -429,12 +434,21 @@ function computeCalculatedModel(){
     const adjustedCostPerShare = typeof lot.importedAdjustedCostPerShare === "number"
       ? lot.importedAdjustedCostPerShare
       : (lot.sharesBought ? adjustedTotalBasis / lot.sharesBought : 0);
-    const appliedReplacementLotId = lotStats.appliedReplacementLotIds.size === 1
-      ? [...lotStats.appliedReplacementLotIds][0]
+    const appliedReplacementLotIds = [...lotStats.appliedReplacementLotIds];
+    const appliedReplacementLotId = appliedReplacementLotIds.length === 1
+      ? appliedReplacementLotIds[0]
       : (lotStats.suggestedReplacementLotId || "");
-    const matchStatus = basisAdjustmentIn > 0
-      ? "Replacement lot receiving wash basis"
-      : lotStats.matchStatus;
+    const sourceWashLotIds = [...(basisSourceLotIds[lot.id] || new Set())];
+    let matchStatus = "";
+    if(basisAdjustmentIn > 0){
+      matchStatus = sourceWashLotIds.length
+        ? `Replacement lot receiving wash basis from ${sourceWashLotIds.join(", ")}`
+        : "Replacement lot receiving wash basis";
+    } else if(lotStats.matchStatus){
+      matchStatus = appliedReplacementLotIds.length
+        ? `Wash loss carried into replacement lot basis: ${appliedReplacementLotIds.join(", ")}`
+        : lotStats.matchStatus;
+    }
 
     return {
       trackerRow: idx + 1,
@@ -452,6 +466,8 @@ function computeCalculatedModel(){
       candidateReplacementCount: lotStats.candidateReplacementCount,
       suggestedReplacementLotId: lotStats.suggestedReplacementLotId,
       appliedReplacementLotId,
+      appliedReplacementLotIds,
+      sourceWashLotIds,
       disallowedWashLoss: lotStats.disallowedWashLoss,
       basisAdjustmentIn,
       adjustedTotalBasis,
@@ -696,10 +712,10 @@ function openLotOverview(lotId){
   const actions = [];
   actions.push(`<button type="button" class="secondary-btn" onclick="closeDialogs()">Close</button>`);
   actions.push(`<button type="button" class="secondary-btn" onclick="openDetail('${r.id}')">Details</button>`);
-  actions.push(`<button type="button" class="secondary-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>`);
-  actions.push(`<button type="button" class="secondary-btn" onclick="openEditBuyDialog('${r.id}')">Edit Buy</button>`);
+  actions.push(`<button type="button" class="secondary-btn delete-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>`);
+  actions.push(`<button type="button" class="secondary-btn edit-btn" onclick="openEditBuyDialog('${r.id}')">Edit Buy</button>`);
   if(r.sharesRemaining > 0){
-    actions.push(`<button type="button" class="primary-btn" onclick="closeDialogs(); openSaleDialog('${r.id}')">Record Sale</button>`);
+    actions.push(`<button type="button" class="primary-btn buy-btn" onclick="closeDialogs(); openSaleDialog('${r.id}')">Record Sale</button>`);
   }
   document.getElementById("overviewActions").innerHTML = actions.join("");
   document.getElementById("overviewDialog").showModal();

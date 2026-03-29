@@ -1,3 +1,3 @@
-# Sale Tracker v22
+# Sale Tracker v23
 
 Added summary-back navigation, delete buy/sale actions, and improved wash-sale basis carryforward.
