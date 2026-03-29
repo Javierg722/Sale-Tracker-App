@@ -1,7 +1,7 @@
-const APP_VERSION = "v30";
+const APP_VERSION = "v30.1";
 
-const STORE_KEY = "sale-tracker-pwa-v30";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v30.1";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v30","sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
