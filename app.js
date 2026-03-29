@@ -1,7 +1,7 @@
-const APP_VERSION = "v11";
+const APP_VERSION = "v12";
 
-const STORE_KEY = "sale-tracker-pwa-v11";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v10", "sale-tracker-pwa-v9", "sale-tracker-pwa-v8", "sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v12";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v11", "sale-tracker-pwa-v10", "sale-tracker-pwa-v9", "sale-tracker-pwa-v8", "sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -242,8 +242,18 @@ function seedIfEmpty(){
 
 function salesForLot(lotId){ return state.sales.filter(s => s.lotId===lotId).sort((a,b)=>a.sellDate.localeCompare(b.sellDate)); }
 
+function formatLotIdPrice(value){
+  const numValue = toNumber(value);
+  if(numValue === null) return "";
+  return String(numValue.toFixed(8)).replace(/0+$/,"").replace(/\.$/,"");
+}
+function stableLotIdFromFields(ticker, buyDate, costPerShare){
+  const pricePart = formatLotIdPrice(costPerShare);
+  if(!ticker || !buyDate || !pricePart) return "";
+  return `${String(ticker).trim().toUpperCase()}-${shortDateKey(buyDate)}-${pricePart}`;
+}
 function getDisplayLotId(lot){
-  return lot.lotIdText || `${lot.ticker}-${shortDateKey(lot.buyDate)}-R${shortId(lot.id)}`;
+  return lot.lotIdText || stableLotIdFromFields(lot.ticker, lot.buyDate, lot.costPerShare) || `${lot.ticker}-${shortDateKey(lot.buyDate)}-R${shortId(lot.id)}`;
 }
 function hasAdjustedBasis(row){
   if(typeof row.adjustedCostPerShare === "number" && typeof row.costPerShare === "number"){
@@ -399,24 +409,43 @@ function todayIso(){
   return local.toISOString().slice(0,10);
 }
 function countdownSummaryRows(){
-  const rows = computedRows();
   const byTicker = new Map();
-  for(const row of rows){
-    const ticker = row.ticker;
-    const sales = salesForLot(row.id);
-    if(!sales.length) continue;
-    const latestSaleDate = sales[sales.length-1].sellDate;
-    const rebuys = state.lots.filter(other => other.ticker === ticker && other.buyDate && latestSaleDate && daysBetween(latestSaleDate, other.buyDate) >= 0 && daysBetween(latestSaleDate, other.buyDate) <= 30).sort((a,b)=>(a.buyDate||"").localeCompare(b.buyDate||""));
-    if(!rebuys.length) continue;
-    const rebuyDate = rebuys[rebuys.length-1].buyDate;
-    const recentBuyEndsDate = addDays(rebuyDate, 30);
-    const counter = Math.max(0, daysBetween(todayIso(), recentBuyEndsDate));
-    if(counter <= 0) continue;
-    const existing = byTicker.get(ticker);
-    const candidate = {ticker, recentBuyEndsDate, latestSaleDate, rebuyDate, rebuyCounter: counter};
-    if(!existing || candidate.recentBuyEndsDate > existing.recentBuyEndsDate) byTicker.set(ticker, candidate);
+  const today = todayIso();
+  for(const lot of state.lots){
+    if(!lot.ticker || !lot.buyDate) continue;
+    const dayOffset = daysBetween(lot.buyDate, today);
+    const isRecentBuy = dayOffset >= 0 && dayOffset <= 30 && (lot.sharesBought > 0);
+    if(!isRecentBuy) continue;
+
+    const ticker = lot.ticker;
+    const existing = byTicker.get(ticker) || {
+      ticker,
+      recentBuyEndsDate: "",
+      latestLossSaleDate: "",
+      rebuyDate: "",
+      rebuyCounter: ""
+    };
+
+    if(!existing.recentBuyEndsDate || addDays(lot.buyDate, 31) > existing.recentBuyEndsDate){
+      existing.recentBuyEndsDate = addDays(lot.buyDate, 31);
+    }
+
+    let latestLossSaleDate = existing.latestLossSaleDate || "";
+    for(const sale of salesForLot(lot.id)){
+      const basisPerShare = (typeof lot.importedAdjustedCostPerShare === "number" && lot.importedAdjustedCostPerShare > 0)
+        ? lot.importedAdjustedCostPerShare
+        : lot.costPerShare;
+      const gainLoss = sale.sharesSold * (sale.salePricePerShare - basisPerShare);
+      if(gainLoss < 0 && (!latestLossSaleDate || sale.sellDate > latestLossSaleDate)){
+        latestLossSaleDate = sale.sellDate;
+      }
+    }
+    existing.latestLossSaleDate = latestLossSaleDate;
+    existing.rebuyDate = latestLossSaleDate ? addDays(latestLossSaleDate, 31) : "";
+    existing.rebuyCounter = existing.rebuyDate ? Math.max(0, daysBetween(today, existing.rebuyDate)) : "";
+    byTicker.set(ticker, existing);
   }
-  return [...byTicker.values()].sort((a,b)=>a.recentBuyEndsDate.localeCompare(b.recentBuyEndsDate));
+  return [...byTicker.values()].sort((a,b)=>String(a.recentBuyEndsDate).localeCompare(String(b.recentBuyEndsDate)));
 }
 function ytdCapitalSummary(){
   const year = new Date().getFullYear();
@@ -441,7 +470,7 @@ function renderCountdownSummaryTable(){
     target.innerHTML = `<div class="empty-mini">No tickers currently have an active recent rebuy window.</div>`;
     return;
   }
-  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table"><thead><tr><th>Ticker</th><th>Recent Buy Ends Date</th><th>Latest Sale Date</th><th>Rebuy Date</th><th>Rebuy Counter</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${dateFmt(row.latestSaleDate)}</td><td>${dateFmt(row.rebuyDate)}</td><td>${row.rebuyCounter}</td></tr>`).join("")}</tbody></table></div>`;
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table"><thead><tr><th>Ticker</th><th>Recent Buy Ends</th><th>Latest Loss Sale Date</th><th>Rebuy Date</th><th>Days Until Rebuy</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${dateFmt(row.latestSaleDate)}</td><td>${dateFmt(row.rebuyDate)}</td><td>${row.rebuyCounter}</td></tr>`).join("")}</tbody></table></div>`;
 }
 function renderYtdCapitalSummaryTable(){
   const target = document.getElementById("ytdCapitalSummaryTable");
@@ -687,7 +716,8 @@ function parseWorkbookState(workbook){
 
       if(!ticker || !buyDate || sharesBought === null || costPerShare === null || sharesRemaining === null) continue;
 
-      const groupKey = lotIdText || `xlsx-row-${i+1}`;
+      const stableLotId = lotIdText || stableLotIdFromFields(ticker, buyDate, costPerShare) || `xlsx-row-${i+1}`;
+      const groupKey = `${ticker}||${buyDate}||${formatLotIdPrice(costPerShare)}||${stableLotId}`;
       if(!grouped.has(groupKey)){
         grouped.set(groupKey, {
           id: `xlsx-${groupKey.replace(/[^A-Za-z0-9_-]/g, "_")}`,
@@ -695,7 +725,7 @@ function parseWorkbookState(workbook){
           sleeve: inferSleeve(ticker),
           buyDate,
           costPerShare,
-          lotIdText: groupKey,
+          lotIdText: stableLotId,
           sharesBoughtCandidates: [],
           remainingCandidates: [],
           noteParts: [],

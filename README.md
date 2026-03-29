@@ -1,8 +1,1 @@
-# Sale Tracker v11
-
-Changes:
-- no service worker caching
-- sales history tables by lot
-- app groups duplicate spreadsheet rows by the same Lot ID
-- front rows show Adj. Basis tag when basis differs from purchase basis
-- removed collapsed-row Record Sale button
+# Sale Tracker v12\n\nChanges:\n- service worker remains disabled during active editing\n- countdown summary now shows only tickers with Recent Buy = Yes and the 5 requested columns\n- workbook import groups only when ticker, buy date, buy price, and Lot ID all align\n- stable Lot ID default matches ticker + buy date + buy price\n
