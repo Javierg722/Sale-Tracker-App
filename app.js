@@ -1,10 +1,14 @@
-const STORE_KEY = "sale-tracker-pwa-v3";
+const STORE_KEY = "sale-tracker-pwa-v4";
 const intlTickers = new Set(["VXUS","IXUS","SCHF","FTIHX"]);
+const DEFAULT_STATE = {"lots":[{"id":"row-18","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":580.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-19","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":615.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-20","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":580.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-21","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":30.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-22","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":585.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-23","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":562.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-24","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":580.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-25","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":580.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-26","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":351.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-27","ticker":"ITOT","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.883,"costPerShare":150.63,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-28","ticker":"ITOT","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":143.0,"costPerShare":146.76,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-29","ticker":"SCHB","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.872,"costPerShare":25.95183486238532,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-30","ticker":"SCHB","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":813.0,"costPerShare":25.95,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-31","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-10-30","sharesBought":1110.0,"costPerShare":30.53,"sharesRemaining":1110.0,"parentLotId":null,"note":""},{"id":"row-32","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.251,"costPerShare":331.8326693227092,"sharesRemaining":0.251,"parentLotId":null,"note":""},{"id":"row-33","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":212.0,"costPerShare":331.8,"sharesRemaining":212.0,"parentLotId":null,"note":""},{"id":"row-34","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-18","sharesBought":0.993,"costPerShare":614.7331319234642,"sharesRemaining":0.993,"parentLotId":null,"note":""},{"id":"row-35","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-18","sharesBought":40.0,"costPerShare":614.735,"sharesRemaining":40.0,"parentLotId":null,"note":""},{"id":"row-36","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-20","sharesBought":34.0,"costPerShare":602.785,"sharesRemaining":34.0,"parentLotId":null,"note":""},{"id":"row-37","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-20","sharesBought":0.135,"costPerShare":602.8148148148148,"sharesRemaining":0.135,"parentLotId":null,"note":""},{"id":"row-38","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-27","sharesBought":0.736,"costPerShare":314.3478260869566,"sharesRemaining":0.736,"parentLotId":null,"note":""},{"id":"row-39","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-27","sharesBought":63.0,"costPerShare":314.35,"sharesRemaining":63.0,"parentLotId":null,"note":""},{"id":"row-381","ticker":"IXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":157.003,"costPerShare":88.55,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-382","ticker":"IXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":0.997,"costPerShare":93.56,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-383","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":178.0,"costPerShare":79.01988764044944,"sharesRemaining":178.0,"parentLotId":null,"note":""},{"id":"row-384","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":0.182,"costPerShare":79.01098901098902,"sharesRemaining":0.182,"parentLotId":null,"note":""},{"id":"row-385","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-20","sharesBought":177.0,"costPerShare":74.63988700564971,"sharesRemaining":177.0,"parentLotId":null,"note":""},{"id":"row-386","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-20","sharesBought":0.98,"costPerShare":74.63265306122449,"sharesRemaining":0.98,"parentLotId":null,"note":""}],"sales":[{"id":"sale-18","lotId":"row-18","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.15},{"id":"sale-19","lotId":"row-19","sellDate":"2026-03-09","sharesSold":615.0,"salePricePerShare":38.15},{"id":"sale-20","lotId":"row-20","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.15},{"id":"sale-21","lotId":"row-21","sellDate":"2026-03-09","sharesSold":30.0,"salePricePerShare":38.0},{"id":"sale-22","lotId":"row-22","sellDate":"2026-03-09","sharesSold":585.0,"salePricePerShare":38.0},{"id":"sale-23","lotId":"row-23","sellDate":"2026-03-09","sharesSold":562.0,"salePricePerShare":38.0},{"id":"sale-24","lotId":"row-24","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.0},{"id":"sale-25","lotId":"row-25","sellDate":"2026-03-17","sharesSold":580.0,"salePricePerShare":37.79},{"id":"sale-26","lotId":"row-26","sellDate":"2026-03-17","sharesSold":351.0,"salePricePerShare":37.79},{"id":"sale-27","lotId":"row-27","sellDate":"2026-03-20","sharesSold":0.883,"salePricePerShare":142.93},{"id":"sale-28","lotId":"row-28","sellDate":"2026-03-20","sharesSold":143.0,"salePricePerShare":142.93},{"id":"sale-29","lotId":"row-29","sellDate":"2026-03-27","sharesSold":0.872,"salePricePerShare":24.61009174311927},{"id":"sale-30","lotId":"row-30","sellDate":"2026-03-27","sharesSold":813.0,"salePricePerShare":24.60029520295203},{"id":"sale-381","lotId":"row-381","sellDate":"2026-03-20","sharesSold":157.003,"salePricePerShare":83.55},{"id":"sale-382","lotId":"row-382","sellDate":"2026-03-20","sharesSold":0.997,"salePricePerShare":83.55}]};
+
 let state = loadState();
 seedIfEmpty();
 
 function uid(){ return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2); }
-function loadState(){ try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {lots:[],sales:[]} } catch { return {lots:[],sales:[]} } }
+function createEmptyState(){ return {lots:[],sales:[]}; }
+function deepClone(value){ return JSON.parse(JSON.stringify(value)); }
+function loadState(){ try { return normalizeState(JSON.parse(localStorage.getItem(STORE_KEY)) || createEmptyState()); } catch { return createEmptyState(); } }
 function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 function inferSleeve(t){ return intlTickers.has((t||"").toUpperCase().trim()) ? "International" : "U.S."; }
 function currency(v){ return typeof v === "number" ? v.toLocaleString(undefined,{style:"currency",currency:"USD"}) : ""; }
@@ -16,11 +20,64 @@ function approxEqual(a,b){ return Math.abs(a-b) < 0.000001; }
 function daysBetween(a,b){ return Math.round((new Date(b+"T00:00:00") - new Date(a+"T00:00:00"))/86400000); }
 function lotSort(a,b){ if(a.sleeve!==b.sleeve) return a.sleeve.localeCompare(b.sleeve); if(a.buyDate!==b.buyDate) return a.buyDate.localeCompare(b.buyDate); return String(a.id).localeCompare(String(b.id)); }
 function sortLots(){ state.lots.sort(lotSort); }
+function toNumber(value){ const numValue = typeof value === "number" ? value : Number(value); return Number.isFinite(numValue) ? numValue : null; }
+function dateToIso(value){
+  if(!value) return "";
+  if(value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0,10);
+  if(typeof value === "number" && typeof XLSX !== "undefined" && XLSX.SSF) {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if(parsed) return `${parsed.y}-${String(parsed.m).padStart(2,"0")}-${String(parsed.d).padStart(2,"0")}`;
+  }
+  const text = String(value).trim();
+  if(!text) return "";
+  if(/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0,10);
+  const parsedDate = new Date(text);
+  if(!Number.isNaN(parsedDate.getTime())) return parsedDate.toISOString().slice(0,10);
+  return "";
+}
+function normalizeLot(raw, index){
+  const ticker = String(raw?.ticker || "").trim().toUpperCase();
+  const buyDate = dateToIso(raw?.buyDate);
+  const sharesBought = toNumber(raw?.sharesBought);
+  const costPerShare = toNumber(raw?.costPerShare);
+  const sharesRemaining = toNumber(raw?.sharesRemaining);
+  if(!ticker || !buyDate || sharesBought === null || costPerShare === null || sharesRemaining === null) return null;
+  return {
+    id: String(raw?.id || `lot-${index+1}`),
+    ticker,
+    sleeve: raw?.sleeve === "International" || inferSleeve(ticker) === "International" ? "International" : "U.S.",
+    buyDate,
+    sharesBought,
+    costPerShare,
+    sharesRemaining,
+    parentLotId: raw?.parentLotId ? String(raw.parentLotId) : null,
+    note: raw?.note ? String(raw.note) : ""
+  };
+}
+function normalizeSale(raw, index, lotIds){
+  const lotId = String(raw?.lotId || "").trim();
+  const sellDate = dateToIso(raw?.sellDate);
+  const sharesSold = toNumber(raw?.sharesSold);
+  const salePricePerShare = toNumber(raw?.salePricePerShare);
+  if(!lotId || !lotIds.has(lotId) || !sellDate || sharesSold === null || salePricePerShare === null || !(sharesSold > 0) || !(salePricePerShare > 0)) return null;
+  return {
+    id: String(raw?.id || `sale-${index+1}`),
+    lotId,
+    sellDate,
+    sharesSold,
+    salePricePerShare
+  };
+}
+function normalizeState(raw){
+  const lots = Array.isArray(raw?.lots) ? raw.lots.map(normalizeLot).filter(Boolean) : [];
+  const lotIds = new Set(lots.map(l => l.id));
+  const sales = Array.isArray(raw?.sales) ? raw.sales.map((sale, idx) => normalizeSale(sale, idx, lotIds)).filter(Boolean) : [];
+  return {lots: lots.sort(lotSort), sales};
+}
 
 function seedIfEmpty(){
   if(state.lots.length || state.sales.length) return;
-  state.lots.push({id:uid(),ticker:"ITOT",sleeve:"U.S.",buyDate:"2026-03-10",sharesBought:10,costPerShare:150,sharesRemaining:10,parentLotId:null,note:""});
-  state.lots.push({id:uid(),ticker:"VXUS",sleeve:"International",buyDate:"2026-03-17",sharesBought:8,costPerShare:62,sharesRemaining:8,parentLotId:null,note:""});
+  state = normalizeState(deepClone(DEFAULT_STATE));
   saveState();
 }
 
@@ -272,6 +329,68 @@ function closeDialogs(){
   document.getElementById("infoDialog").close();
 }
 
+function parseWorkbookState(workbook){
+  const sheet = workbook.Sheets["Wash Sale Tracker"] || workbook.Sheets[workbook.SheetNames[0]];
+  if(!sheet) throw new Error("Workbook does not contain a readable sheet.");
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:"", raw:true, blankrows:false});
+  const headerIndexes = [];
+  rows.forEach((row, idx) => {
+    if(String(row[0] || "").trim() === "Ticker" && String(row[1] || "").trim() === "Buy Date" && String(row[2] || "").trim() === "Shares Bought") {
+      headerIndexes.push(idx);
+    }
+  });
+  if(!headerIndexes.length) throw new Error("Could not find the trade-entry table in the workbook.");
+
+  const lots = [];
+  const sales = [];
+  for(const headerIndex of headerIndexes){
+    for(let i = headerIndex + 1; i < rows.length; i += 1){
+      const row = rows[i] || [];
+      const firstCell = String(row[0] || "").trim();
+      if(!firstCell) continue;
+      if(firstCell === "Ticker") break;
+      if(firstCell.includes("Sleeve Lots")) break;
+
+      const ticker = firstCell.toUpperCase();
+      const buyDate = dateToIso(row[1]);
+      const sharesBought = toNumber(row[2]);
+      const costPerShare = toNumber(row[3]);
+      const sellDate = dateToIso(row[4]);
+      const salePricePerShare = toNumber(row[5]);
+      const sharesRemaining = toNumber(row[6]);
+      const sharesSold = toNumber(row[12]);
+      const note = row[23] ? String(row[23]).trim() : "";
+
+      if(!ticker || !buyDate || sharesBought === null || costPerShare === null || sharesRemaining === null) continue;
+
+      const lotId = `xlsx-row-${i+1}`;
+      lots.push({
+        id: lotId,
+        ticker,
+        sleeve: inferSleeve(ticker),
+        buyDate,
+        sharesBought,
+        costPerShare,
+        sharesRemaining,
+        parentLotId: null,
+        note
+      });
+
+      if(sellDate && sharesSold !== null && sharesSold > 0 && salePricePerShare !== null && salePricePerShare > 0){
+        sales.push({
+          id: `xlsx-sale-${i+1}`,
+          lotId,
+          sellDate,
+          sharesSold,
+          salePricePerShare
+        });
+      }
+    }
+  }
+  if(!lots.length) throw new Error("No trade rows were found in the workbook.");
+  return normalizeState({lots, sales});
+}
+
 document.querySelectorAll(".tab").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -351,16 +470,42 @@ document.getElementById("importJson").addEventListener("change", async (e) => {
   if(!file) return;
   try{
     const parsed = JSON.parse(await file.text());
-    if(!parsed.lots || !parsed.sales) throw new Error("Invalid JSON backup.");
-    state = parsed;
+    state = normalizeState(parsed);
+    if(!state.lots.length) throw new Error("Invalid JSON backup.");
     saveState();
     render();
-    alert("Import complete.");
+    alert("JSON import complete.");
   } catch(err){
     alert("Import failed: " + err.message);
   } finally {
     e.target.value = "";
   }
+});
+
+document.getElementById("importXlsx").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const workbook = XLSX.read(await file.arrayBuffer(), {type:"array", cellDates:true});
+    const imported = parseWorkbookState(workbook);
+    if(!imported.lots.length) throw new Error("No lots were imported.");
+    state = imported;
+    saveState();
+    render();
+    alert(`Spreadsheet import complete. Loaded ${state.lots.length} lots and ${state.sales.length} sales.`);
+  } catch(err){
+    alert("Spreadsheet import failed: " + err.message);
+  } finally {
+    e.target.value = "";
+  }
+});
+
+document.getElementById("resetStarterBtn").addEventListener("click", () => {
+  if(!confirm("Replace the current app data with the starter workbook data from this build?")) return;
+  state = normalizeState(deepClone(DEFAULT_STATE));
+  saveState();
+  render();
+  alert("Starter workbook data restored.");
 });
 
 if("serviceWorker" in navigator){

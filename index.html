@@ -69,7 +69,7 @@
     <section id="toolsTab" class="panel">
       <div class="hero-card">
         <h2>Tools</h2>
-        <p>Use export regularly for backup. JSON import/export is supported now. Spreadsheet and PDF import can be added next.</p>
+        <p>The app now starts with your actual workbook data. Use spreadsheet import anytime you update the Excel file and want the app refreshed.</p>
       </div>
 
       <div class="tool-card">
@@ -78,6 +78,11 @@
           Import JSON Backup
           <input type="file" id="importJson" accept="application/json" hidden>
         </label>
+        <label class="secondary-btn full file-label">
+          Import Spreadsheet (.xlsx)
+          <input type="file" id="importXlsx" accept=".xlsx,.xlsm,.xls" hidden>
+        </label>
+        <button id="resetStarterBtn" class="secondary-btn full">Restore Starter Workbook Data</button>
       </div>
 
       <div class="tool-card">
@@ -86,7 +91,7 @@
           <li>New buy = new lot</li>
           <li>Full sale = close the lot</li>
           <li>Partial sale = split the lot into a sold slice and remaining open slice</li>
-          <li>If key info is missing, do not infer</li>
+          <li>Spreadsheet import reads the trade table from the Wash Sale Tracker sheet and replaces the current app data</li>
         </ul>
       </div>
     </section>
@@ -176,6 +181,7 @@
     </div>
   </dialog>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
