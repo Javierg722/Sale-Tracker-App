@@ -1,7 +1,7 @@
-const APP_VERSION = "v31";
+const APP_VERSION = "v32";
 
-const STORE_KEY = "sale-tracker-pwa-v31";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v30.2","sale-tracker-pwa-v30.1","sale-tracker-pwa-v30","sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v32";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v31","sale-tracker-pwa-v30.2","sale-tracker-pwa-v30.1","sale-tracker-pwa-v30","sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -503,12 +503,7 @@ function worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare){
   return `${upperTicker}-${dateKey}-${sharesKey}-${priceKey}`;
 }
 function normalizeLotIdText(rawText, ticker, buyDate, sharesBought, costPerShare){
-  const stable = worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare);
-  const text = String(rawText || "").trim();
-  if(!text) return stable;
-  if(/^[A-Z]+-\d{8}-R\d+$/i.test(text)) return stable;
-  if(/^[A-Z]+-\d{8}-[^-]+$/i.test(text)) return stable;
-  return text;
+  return worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare);
 }
 
 function normalizeLot(raw, index){
@@ -1736,19 +1731,22 @@ document.getElementById("importXlsx").addEventListener("change", async (e) => {
 });
 
 
-document.getElementById("cancelExportReview").addEventListener("click", () => {
+function cancelExportReviewDialog(){
   const dialog = document.getElementById("exportReviewDialog");
   if(dialog && dialog.open) dialog.close();
-});
-document.getElementById("confirmExportReview").addEventListener("click", async () => {
+}
+async function confirmExportReviewDialog(){
   try{
     await runSpreadsheetExport();
-    const dialog = document.getElementById("exportReviewDialog");
-    if(dialog && dialog.open) dialog.close();
+    cancelExportReviewDialog();
   } catch(err){
     alert("Spreadsheet export failed: " + err.message);
   }
-});
+}
+const cancelExportBtn = document.getElementById("cancelExportReview");
+if(cancelExportBtn) cancelExportBtn.addEventListener("click", cancelExportReviewDialog);
+const confirmExportBtn = document.getElementById("confirmExportReview");
+if(confirmExportBtn) confirmExportBtn.addEventListener("click", confirmExportReviewDialog);
 
 
 async function disableServiceWorkers(){
