@@ -1,7 +1,7 @@
-const APP_VERSION = "v33";
+const APP_VERSION = "v34";
 
-const STORE_KEY = "sale-tracker-pwa-v33";
-const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v32","sale-tracker-pwa-v31","sale-tracker-pwa-v30.2","sale-tracker-pwa-v30.1","sale-tracker-pwa-v30","sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const STORE_KEY = "sale-tracker-pwa-v34";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v33","sale-tracker-pwa-v32","sale-tracker-pwa-v31","sale-tracker-pwa-v30.2","sale-tracker-pwa-v30.1","sale-tracker-pwa-v30","sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
 const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
 const US_START_ROW = 18;
 const US_END_ROW = 378;
@@ -660,7 +660,7 @@ function salesHistoryTable(lot){
     if(row.type === "open"){
       return `<tr class="open-row"><td>Open shares</td><td>${num(row.sharesSold)}</td><td>—</td><td>—</td><td>—</td><td></td></tr>`;
     }
-    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td><td><button type="button" class="secondary-btn table-btn delete-btn" onclick="deleteSale('${row.id}')">Delete</button> <button type="button" class="secondary-btn table-btn edit-btn" onclick="openEditSaleDialog('${row.id}')">Edit</button></td></tr>`;
+    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td><td><div class="stacked-table-actions"><button type="button" class="secondary-btn table-btn delete-btn stacked-btn" onclick="deleteSale('${row.id}')">Delete</button><button type="button" class="secondary-btn table-btn edit-btn stacked-btn" onclick="openEditSaleDialog('${row.id}')">Edit</button></div></td></tr>`;
   }).join("");
   return `<div class="table-wrap"><table class="sales-table"><thead><tr><th>Sale Date</th><th>Shares</th><th>Sale Price</th><th>Proceeds</th><th>Gain / (Loss)</th><th>Action</th></tr></thead><tbody>${body}</tbody></table></div>`;
 }

@@ -1,6 +1,6 @@
-# Sale Tracker v33
+# Sale Tracker v34
 
 Added summary-back navigation, delete buy/sale actions, and improved wash-sale basis carryforward.
 
 
-v33 adds FIFO wash-match modal with override and correct Lot ID notes.
+v34 adds FIFO wash-match modal with override and correct Lot ID notes.
