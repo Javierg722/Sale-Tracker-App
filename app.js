@@ -295,7 +295,7 @@ function overwriteCell(sheet, address, cell){
 }
 function clearEntryRange(sheet, startRow, endRow){
   for(let row = startRow; row <= endRow; row += 1){
-    for(const col of ["A","B","C","D","E","F","G","L","R"]){
+    for(const col of ["E","G","H","I","J","K","L","N"]){
       overwriteCell(sheet, `${col}${row}`, null);
     }
   }
@@ -314,6 +314,7 @@ function rowsForExport(){
         sharesBought: sale.sharesSold,
         costPerShare: lot.costPerShare,
         sellDate: sale.sellDate,
+        sharesSold: sale.sharesSold,
         salePricePerShare: sale.salePricePerShare,
         sharesRemaining: 0,
         note: lot.note || "",
@@ -328,6 +329,7 @@ function rowsForExport(){
         sharesBought: lot.sharesRemaining || lot.sharesBought,
         costPerShare: lot.costPerShare,
         sellDate: "",
+        sharesSold: null,
         salePricePerShare: null,
         sharesRemaining: lot.sharesRemaining || lot.sharesBought,
         note: lot.note || "",
@@ -341,36 +343,32 @@ async function buildExportWorkbook(){
   const response = await fetch(TEMPLATE_WORKBOOK_PATH, { cache:"no-store" });
   if(!response.ok) throw new Error("Could not load the workbook template bundled with the app.");
   const workbook = XLSX.read(await response.arrayBuffer(), { type:"array", cellDates:true, cellStyles:true });
-  const sheet = workbook.Sheets["Wash Sale Tracker"] || workbook.Sheets[workbook.SheetNames[0]];
-  if(!sheet) throw new Error("Workbook template does not contain the Wash Sale Tracker sheet.");
+  const sheet = workbook.Sheets["1_Data Entry"] || workbook.Sheets[workbook.SheetNames[0]];
+  if(!sheet) throw new Error("Workbook template does not contain the 1_Data Entry sheet.");
 
-  const usRows = rowsForExport().filter(r => r.sleeve === "U.S.");
-  const intlRows = rowsForExport().filter(r => r.sleeve === "International");
-  const usCapacity = US_END_ROW - US_START_ROW + 1;
-  const intlCapacity = INTL_END_ROW - INTL_START_ROW + 1;
-  if(usRows.length > usCapacity) throw new Error(`Too many U.S. lots to export (${usRows.length}). Workbook capacity is ${usCapacity}.`);
-  if(intlRows.length > intlCapacity) throw new Error(`Too many International lots to export (${intlRows.length}). Workbook capacity is ${intlCapacity}.`);
+  const DATA_START_ROW = 6;
+  const DATA_END_ROW = 505;
+  const exportRows = rowsForExport();
+  const capacity = DATA_END_ROW - DATA_START_ROW + 1;
+  if(exportRows.length > capacity) throw new Error(`Too many rows to export (${exportRows.length}). Workbook capacity is ${capacity}.`);
 
-  clearEntryRange(sheet, US_START_ROW, US_END_ROW);
-  clearEntryRange(sheet, INTL_START_ROW, INTL_END_ROW);
+  clearEntryRange(sheet, DATA_START_ROW, DATA_END_ROW);
 
   function writeRows(rows, startRow){
     rows.forEach((row, index) => {
       const excelRow = startRow + index;
-      overwriteCell(sheet, `A${excelRow}`, textCell(row.ticker));
-      overwriteCell(sheet, `B${excelRow}`, excelDateCell(row.buyDate));
-      overwriteCell(sheet, `C${excelRow}`, numberCell(row.sharesBought));
-      overwriteCell(sheet, `D${excelRow}`, numberCell(row.costPerShare));
-      overwriteCell(sheet, `E${excelRow}`, excelDateCell(row.sellDate));
-      overwriteCell(sheet, `F${excelRow}`, numberCell(row.salePricePerShare));
-      overwriteCell(sheet, `G${excelRow}`, numberCell(row.sharesRemaining));
-      overwriteCell(sheet, `L${excelRow}`, textCell(row.lotIdText));
-      overwriteCell(sheet, `R${excelRow}`, blankCell());
+      overwriteCell(sheet, `E${excelRow}`, textCell(row.ticker));
+      overwriteCell(sheet, `G${excelRow}`, excelDateCell(row.buyDate));
+      overwriteCell(sheet, `H${excelRow}`, numberCell(row.sharesBought));
+      overwriteCell(sheet, `I${excelRow}`, numberCell(row.costPerShare));
+      overwriteCell(sheet, `J${excelRow}`, excelDateCell(row.sellDate));
+      overwriteCell(sheet, `K${excelRow}`, numberCell(row.sharesSold));
+      overwriteCell(sheet, `L${excelRow}`, numberCell(row.salePricePerShare));
+      overwriteCell(sheet, `N${excelRow}`, textCell(row.note || ""));
     });
   }
 
-  writeRows(usRows, US_START_ROW);
-  writeRows(intlRows, INTL_START_ROW);
+  writeRows(exportRows, DATA_START_ROW);
   return workbook;
 }
 
@@ -1413,6 +1411,61 @@ function closeDialogs(){
 
 
 function parseWorkbookState(workbook){
+  const dataSheet = workbook.Sheets["1_Data Entry"] || null;
+  if(dataSheet){
+    const rows = XLSX.utils.sheet_to_json(dataSheet, {header:1, defval:"", raw:true, blankrows:false});
+    const reviewSheet = workbook.Sheets["2_Review & Audit"] || null;
+    const reviewRows = reviewSheet ? XLSX.utils.sheet_to_json(reviewSheet, {header:1, defval:"", raw:true, blankrows:false}) : [];
+    const lots = [];
+    const sales = [];
+    for(let i = 5; i < Math.min(rows.length, 505); i += 1){
+      const row = rows[i] || [];
+      const ticker = String(row[4] || "").trim().toUpperCase(); // E
+      if(!ticker) continue;
+      const buyDate = dateToIso(row[6]); // G
+      const sharesBought = toNumber(row[7]); // H
+      const costPerShare = toNumber(row[8]); // I
+      const sellDate = dateToIso(row[9]); // J
+      const sharesSold = toNumber(row[10]); // K
+      const salePricePerShare = toNumber(row[11]); // L
+      const sharesRemainingCell = toNumber(row[12]); // M
+      const note = row[13] ? String(row[13]).trim() : ""; // N
+      if(!buyDate || sharesBought === null || costPerShare === null) continue;
+
+      const reviewRow = reviewRows[i] || [];
+      const generatedLotId = reviewRow[7] ? String(reviewRow[7]).trim() : ""; // H on review tab
+      const importedBasisAdjustmentIn = toNumber(reviewRow[25]) || 0; // Z
+      const importedAdjustedCostPerShare = toNumber(reviewRow[27]); // AB
+      const sharesRemaining = sharesRemainingCell !== null ? Math.max(0, sharesRemainingCell) : Math.max(0, sharesBought - (sharesSold || 0));
+      const lotIdText = generatedLotId || worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare) || `ROW-${i+1}`;
+      const lotId = `xlsx-row-${i+1}`;
+      lots.push({
+        id: lotId,
+        ticker,
+        sleeve: inferSleeve(ticker),
+        buyDate,
+        sharesBought,
+        costPerShare,
+        sharesRemaining,
+        parentLotId: null,
+        lotIdText,
+        importedBasisAdjustmentIn,
+        importedAdjustedCostPerShare,
+        note
+      });
+      if(sellDate && sharesSold !== null && sharesSold > 0 && salePricePerShare !== null && salePricePerShare > 0){
+        sales.push({
+          id: `xlsx-sale-${i+1}`,
+          lotId,
+          sellDate,
+          sharesSold,
+          salePricePerShare
+        });
+      }
+    }
+    if(lots.length) return normalizeState({lots, sales});
+  }
+
   const sheet = workbook.Sheets["Wash Sale Tracker"] || workbook.Sheets[workbook.SheetNames[0]];
   if(!sheet) throw new Error("Workbook does not contain a readable sheet.");
   const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:"", raw:true, blankrows:false});
