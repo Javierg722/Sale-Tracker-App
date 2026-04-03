@@ -1466,7 +1466,7 @@ function parseWorkbookState(workbook){
     if(lots.length) return normalizeState({lots, sales});
   }
 
-  const sheet = workbook.Sheets["Wash Sale Tracker"] || workbook.Sheets[workbook.SheetNames[0]];
+  const sheet = workbook.Sheets["1_Data Entry"] || workbook.Sheets[workbook.SheetNames[0]];
   if(!sheet) throw new Error("Workbook does not contain a readable sheet.");
   const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:"", raw:true, blankrows:false});
   const headerIndexes = [];
