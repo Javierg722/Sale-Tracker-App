@@ -1,0 +1,1844 @@
+const APP_VERSION = "v34.3";
+
+const STORE_KEY = "sale-tracker-pwa-v34";
+const LEGACY_STORE_KEYS = ["sale-tracker-pwa-v33","sale-tracker-pwa-v32","sale-tracker-pwa-v31","sale-tracker-pwa-v30.2","sale-tracker-pwa-v30.1","sale-tracker-pwa-v30","sale-tracker-pwa-v29","sale-tracker-pwa-v28.9","sale-tracker-pwa-v28.8","sale-tracker-pwa-v28.7","sale-tracker-pwa-v28.6","sale-tracker-pwa-v28.5","sale-tracker-pwa-v28.4","sale-tracker-pwa-v28.3","sale-tracker-pwa-v28.2","sale-tracker-pwa-v28.1","sale-tracker-pwa-v28","sale-tracker-pwa-v27","sale-tracker-pwa-v26","sale-tracker-pwa-v25","sale-tracker-pwa-v24","sale-tracker-pwa-v23","sale-tracker-pwa-v22","sale-tracker-pwa-v21","sale-tracker-pwa-v20","sale-tracker-pwa-v19","sale-tracker-pwa-v18","sale-tracker-pwa-v17","sale-tracker-pwa-v16","sale-tracker-pwa-v15","sale-tracker-pwa-v14","sale-tracker-pwa-v13","sale-tracker-pwa-v12","sale-tracker-pwa-v11","sale-tracker-pwa-v10","sale-tracker-pwa-v9","sale-tracker-pwa-v8","sale-tracker-pwa-v7"];
+const TEMPLATE_WORKBOOK_PATH = "./Sale Tracker.xlsx";
+const US_START_ROW = 18;
+const US_END_ROW = 378;
+const INTL_START_ROW = 381;
+const INTL_END_ROW = 796;
+const intlTickers = new Set(["VXUS","IXUS","SCHF","FTIHX"]);
+const DEFAULT_STATE = {"lots":[{"id":"row-18","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":580.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-19","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":615.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-20","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":580.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-21","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":30.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-22","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":585.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-23","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":562.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-24","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-02-18","sharesBought":580.0,"costPerShare":33.72,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-25","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":580.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-26","ticker":"EPD","sleeve":"U.S.","buyDate":"2024-02-16","sharesBought":351.0,"costPerShare":27.25,"sharesRemaining":0.0,"parentLotId":null,"note":""},{"id":"row-27","ticker":"ITOT","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.883,"costPerShare":150.63,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-28","ticker":"ITOT","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":143.0,"costPerShare":146.76,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-29","ticker":"SCHB","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.872,"costPerShare":25.95183486238532,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-30","ticker":"SCHB","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":813.0,"costPerShare":25.95,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-31","ticker":"EPD","sleeve":"U.S.","buyDate":"2025-10-30","sharesBought":1110.0,"costPerShare":30.53,"sharesRemaining":1110.0,"parentLotId":null,"note":""},{"id":"row-32","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":0.251,"costPerShare":331.8326693227092,"sharesRemaining":0.251,"parentLotId":null,"note":""},{"id":"row-33","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-17","sharesBought":212.0,"costPerShare":331.8,"sharesRemaining":212.0,"parentLotId":null,"note":""},{"id":"row-34","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-18","sharesBought":0.993,"costPerShare":614.7331319234642,"sharesRemaining":0.993,"parentLotId":null,"note":""},{"id":"row-35","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-18","sharesBought":40.0,"costPerShare":614.735,"sharesRemaining":40.0,"parentLotId":null,"note":""},{"id":"row-36","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-20","sharesBought":34.0,"costPerShare":602.785,"sharesRemaining":34.0,"parentLotId":null,"note":""},{"id":"row-37","ticker":"VOO","sleeve":"U.S.","buyDate":"2026-03-20","sharesBought":0.135,"costPerShare":602.8148148148148,"sharesRemaining":0.135,"parentLotId":null,"note":""},{"id":"row-38","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-27","sharesBought":0.736,"costPerShare":314.3478260869566,"sharesRemaining":0.736,"parentLotId":null,"note":""},{"id":"row-39","ticker":"VTI","sleeve":"U.S.","buyDate":"2026-03-27","sharesBought":63.0,"costPerShare":314.35,"sharesRemaining":63.0,"parentLotId":null,"note":""},{"id":"row-381","ticker":"IXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":157.003,"costPerShare":88.55,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-382","ticker":"IXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":0.997,"costPerShare":93.56,"sharesRemaining":0.0,"parentLotId":null,"note":"No replacement buy found"},{"id":"row-383","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":178.0,"costPerShare":79.01988764044944,"sharesRemaining":178.0,"parentLotId":null,"note":""},{"id":"row-384","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-17","sharesBought":0.182,"costPerShare":79.01098901098902,"sharesRemaining":0.182,"parentLotId":null,"note":""},{"id":"row-385","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-20","sharesBought":177.0,"costPerShare":74.63988700564971,"sharesRemaining":177.0,"parentLotId":null,"note":""},{"id":"row-386","ticker":"VXUS","sleeve":"International","buyDate":"2026-03-20","sharesBought":0.98,"costPerShare":74.63265306122449,"sharesRemaining":0.98,"parentLotId":null,"note":""}],"sales":[{"id":"sale-18","lotId":"row-18","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.15},{"id":"sale-19","lotId":"row-19","sellDate":"2026-03-09","sharesSold":615.0,"salePricePerShare":38.15},{"id":"sale-20","lotId":"row-20","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.15},{"id":"sale-21","lotId":"row-21","sellDate":"2026-03-09","sharesSold":30.0,"salePricePerShare":38.0},{"id":"sale-22","lotId":"row-22","sellDate":"2026-03-09","sharesSold":585.0,"salePricePerShare":38.0},{"id":"sale-23","lotId":"row-23","sellDate":"2026-03-09","sharesSold":562.0,"salePricePerShare":38.0},{"id":"sale-24","lotId":"row-24","sellDate":"2026-03-09","sharesSold":580.0,"salePricePerShare":38.0},{"id":"sale-25","lotId":"row-25","sellDate":"2026-03-17","sharesSold":580.0,"salePricePerShare":37.79},{"id":"sale-26","lotId":"row-26","sellDate":"2026-03-17","sharesSold":351.0,"salePricePerShare":37.79},{"id":"sale-27","lotId":"row-27","sellDate":"2026-03-20","sharesSold":0.883,"salePricePerShare":142.93},{"id":"sale-28","lotId":"row-28","sellDate":"2026-03-20","sharesSold":143.0,"salePricePerShare":142.93},{"id":"sale-29","lotId":"row-29","sellDate":"2026-03-27","sharesSold":0.872,"salePricePerShare":24.61009174311927},{"id":"sale-30","lotId":"row-30","sellDate":"2026-03-27","sharesSold":813.0,"salePricePerShare":24.60029520295203},{"id":"sale-381","lotId":"row-381","sellDate":"2026-03-20","sharesSold":157.003,"salePricePerShare":83.55},{"id":"sale-382","lotId":"row-382","sellDate":"2026-03-20","sharesSold":0.997,"salePricePerShare":83.55}]};
+
+let state = loadState();
+seedIfEmpty();
+
+function uid(){ return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2); }
+function createEmptyState(){ return {lots:[],sales:[],washMatches:[]}; }
+function deepClone(value){ return JSON.parse(JSON.stringify(value)); }
+function loadState(){
+  try {
+    const current = localStorage.getItem(STORE_KEY);
+    if(current) return normalizeState(JSON.parse(current));
+    for(const legacyKey of LEGACY_STORE_KEYS){
+      const legacy = localStorage.getItem(legacyKey);
+      if(legacy){
+        const parsed = normalizeState(JSON.parse(legacy));
+        localStorage.setItem(STORE_KEY, JSON.stringify(parsed));
+        return parsed;
+      }
+    }
+    return createEmptyState();
+  } catch {
+    return createEmptyState();
+  }
+}
+
+const activeFilters = new Set();
+let activeYearFilter = "all";
+
+function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+const BASELINE_KEY = "sale-tracker-export-baseline-v1";
+const SUPPRESS_SEED_KEY = "sale-tracker-suppress-seed-v1";
+
+function serializableLot(lot){
+  return {
+    id: lot.id,
+    ticker: lot.ticker,
+    sleeve: lot.sleeve,
+    buyDate: lot.buyDate,
+    sharesBought: Number(lot.sharesBought || 0),
+    costPerShare: Number(lot.costPerShare || 0),
+    sharesRemaining: Number(lot.sharesRemaining || 0),
+    note: lot.note || ""
+  };
+}
+function serializableSale(sale){
+  return {
+    id: sale.id,
+    lotId: sale.lotId,
+    sellDate: sale.sellDate,
+    sharesSold: Number(sale.sharesSold || 0),
+    salePricePerShare: Number(sale.salePricePerShare || 0)
+  };
+}
+function serializableWashMatch(match){
+  return {
+    sourceLotId: match.sourceLotId,
+    replacementLotId: match.replacementLotId,
+    matchedShares: Number(match.matchedShares || 0),
+    disallowedLoss: Number(match.disallowedLoss || 0)
+  };
+}
+function currentBaselineSnapshot(){
+  return {
+    lots: state.lots.map(serializableLot).sort((a,b)=>String(a.id).localeCompare(String(b.id))),
+    sales: state.sales.map(serializableSale).sort((a,b)=>String(a.id).localeCompare(String(b.id))),
+    washMatches: (state.washMatches || []).map(serializableWashMatch).sort((a,b)=>
+      `${a.sourceLotId}-${a.replacementLotId}`.localeCompare(`${b.sourceLotId}-${b.replacementLotId}`)
+    )
+  };
+}
+function loadBaselineSnapshot(){
+  try{
+    const raw = localStorage.getItem(BASELINE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function saveBaselineSnapshot(){
+  try{
+    localStorage.setItem(BASELINE_KEY, JSON.stringify(currentBaselineSnapshot()));
+  } catch(err){
+    console.warn("Could not save baseline snapshot", err);
+  }
+}
+function ensureBaselineSnapshot(){
+  const current = loadBaselineSnapshot();
+  if(!current) saveBaselineSnapshot();
+}
+
+function getChangedLotsAgainstBaseline(){
+  const baseline = loadBaselineSnapshot();
+  if(!baseline) return computedRows().map(r => ({ lotIdText:r.lotIdText, ticker:r.ticker, change:"Current lot set" }));
+  const baselineLots = new Map((baseline.lots || []).map(l => [l.id, JSON.stringify(l)]));
+  const baselineSales = new Map((baseline.sales || []).map(s => [s.id, JSON.stringify(s)]));
+  const changes = [];
+  for(const lot of state.lots){
+    const serialized = JSON.stringify(serializableLot(lot));
+    if(!baselineLots.has(lot.id)){
+      changes.push({ lotIdText: displayLotIdById(lot.id), ticker: lot.ticker, change:"New buy lot" });
+      continue;
+    }
+    if(baselineLots.get(lot.id) !== serialized){
+      changes.push({ lotIdText: displayLotIdById(lot.id), ticker: lot.ticker, change:"Buy lot edited" });
+    }
+  }
+  for(const sale of state.sales){
+    const serialized = JSON.stringify(serializableSale(sale));
+    if(!baselineSales.has(sale.id)){
+      const lot = state.lots.find(l => l.id === sale.lotId);
+      changes.push({ lotIdText: lot ? displayLotIdById(lot.id) : sale.lotId, ticker: lot ? lot.ticker : "", change:"New or edited sale" });
+    } else if(baselineSales.get(sale.id) !== serialized){
+      const lot = state.lots.find(l => l.id === sale.lotId);
+      changes.push({ lotIdText: lot ? displayLotIdById(lot.id) : sale.lotId, ticker: lot ? lot.ticker : "", change:"Sale edited" });
+    }
+  }
+  const uniq = [];
+  const seen = new Set();
+  for(const row of changes){
+    const key = `${row.lotIdText}|${row.change}`;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    uniq.push(row);
+  }
+  return uniq;
+}
+
+function collectValidationWarnings(){
+  const warnings = [];
+  const rows = computedRows();
+  const lotIdMap = new Map();
+  for(const row of rows){
+    const existing = lotIdMap.get(row.lotIdText) || [];
+    existing.push(row);
+    lotIdMap.set(row.lotIdText, existing);
+  }
+  for(const [lotIdText, items] of lotIdMap.entries()){
+    if(items.length > 1){
+      const first = items[0];
+      const mismatch = items.some(x =>
+        x.ticker !== first.ticker ||
+        x.buyDate !== first.buyDate ||
+        !approxEqual(Number(x.sharesBought || 0), Number(first.sharesBought || 0)) ||
+        !approxEqual(Number(x.costPerShare || 0), Number(first.costPerShare || 0))
+      );
+      if(mismatch){
+        warnings.push(`Duplicate Lot ID with conflicting buy details: ${lotIdText}`);
+      }
+    }
+  }
+  for(const lot of state.lots){
+    if(Number(lot.sharesRemaining || 0) < -0.000001){
+      warnings.push(`Negative shares remaining on ${displayLotIdById(lot.id)}.`);
+    }
+    if(Number(lot.sharesRemaining || 0) - Number(lot.sharesBought || 0) > 0.000001){
+      warnings.push(`Shares remaining exceeds shares bought on ${displayLotIdById(lot.id)}.`);
+    }
+  }
+  const model = computeCalculatedModel();
+  for(const row of rows){
+    if(row.washSale === "Yes"){
+      const unmatched = Math.max(0, Number(row.sharesSold || 0) - Number(row.candidateMatchedShares || 0));
+      if(unmatched > 0.000001){
+        warnings.push(`Unmatched wash shares remain on ${row.lotIdText}: ${num(unmatched)}.`);
+      }
+    }
+  }
+  const washMatchTotal = (state.washMatches || []).reduce((sum, m) => sum + Number(m.matchedShares || 0), 0);
+  if((state.washMatches || []).length && washMatchTotal <= 0){
+    warnings.push("Wash match records exist but total matched shares are zero.");
+  }
+  return warnings;
+}
+
+function buildExportReviewHtml(){
+  const warnings = collectValidationWarnings();
+  const changedLots = getChangedLotsAgainstBaseline();
+  const ytd = ytdCapitalSummary();
+  const washMatches = state.washMatches || [];
+  const unmatchedRows = computedRows()
+    .filter(r => r.washSale === "Yes")
+    .map(r => ({ lotIdText:r.lotIdText, unmatched:Math.max(0, Number(r.sharesSold || 0) - Number(r.candidateMatchedShares || 0)) }))
+    .filter(r => r.unmatched > 0.000001);
+
+  return `
+    <div class="review-grid">
+      <section class="review-card">
+        <h4>Validation Warnings</h4>
+        ${warnings.length ? `<ul class="review-list warning-list">${warnings.map(w => `<li>${w}</li>`).join("")}</ul>` : `<p class="muted">No validation warnings detected.</p>`}
+      </section>
+      <section class="review-card">
+        <h4>Changed Lots Since Last Import/Export</h4>
+        ${changedLots.length ? `<ul class="review-list">${changedLots.slice(0,16).map(row => `<li><strong>${row.ticker}</strong> · ${row.lotIdText} — ${row.change}</li>`).join("")}</ul>${changedLots.length > 16 ? `<p class="muted">+ ${changedLots.length - 16} more changes</p>` : ``}` : `<p class="muted">No lot changes since the last import/export baseline.</p>`}
+      </section>
+      <section class="review-card">
+        <h4>Wash Match Status</h4>
+        <div class="review-stats">
+          <div><span class="label">Match Records</span><strong>${washMatches.length}</strong></div>
+          <div><span class="label">Unmatched Source Lots</span><strong>${unmatchedRows.length}</strong></div>
+        </div>
+        ${unmatchedRows.length ? `<ul class="review-list">${unmatchedRows.map(row => `<li>${row.lotIdText} — ${num(row.unmatched)} unmatched wash shares</li>`).join("")}</ul>` : `<p class="muted">All current wash-source rows are fully matched or have no remaining unmatched shares.</p>`}
+      </section>
+      <section class="review-card">
+        <h4>Current YTD Totals</h4>
+        <div class="review-stats">
+          <div><span class="label">Short-Term Net</span><strong>${currency(ytd.shortTermNet)}</strong></div>
+          <div><span class="label">Long-Term Net</span><strong>${currency(ytd.longTermNet)}</strong></div>
+          <div><span class="label">Total Net</span><strong>${currency(ytd.totalNet)}</strong></div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function openExportReviewDialog(){
+  const body = document.getElementById("exportReviewBody");
+  if(!body) return;
+  body.innerHTML = buildExportReviewHtml();
+  document.getElementById("exportReviewDialog").showModal();
+}
+
+async function runSpreadsheetExport(){
+  const workbook = await buildExportWorkbook();
+  const now = new Date();
+  const stamp = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}`;
+  XLSX.writeFile(workbook, `Sale Tracker - Export ${stamp}.xlsx`, { cellStyles:true });
+  saveBaselineSnapshot();
+}
+
+function inferSleeve(t){ return intlTickers.has((t||"").toUpperCase().trim()) ? "International" : "U.S."; }
+function currency(v){ return typeof v === "number" ? v.toLocaleString(undefined,{style:"currency",currency:"USD"}) : ""; }
+function num(v){ return typeof v === "number" ? v.toLocaleString(undefined,{maximumFractionDigits:4}) : ""; }
+function dateFmt(v){ if(!v) return ""; return new Date(v + "T00:00:00").toLocaleDateString(); }
+function shortDateKey(v){ return v.replaceAll("-",""); }
+function shortId(id){ return String(id).slice(0,6); }
+function approxEqual(a,b){ return Math.abs(a-b) < 0.000001; }
+function daysBetween(a,b){ return Math.round((new Date(b+"T00:00:00") - new Date(a+"T00:00:00"))/86400000); }
+function lotSort(a,b){ if(a.sleeve!==b.sleeve) return a.sleeve.localeCompare(b.sleeve); if(a.buyDate!==b.buyDate) return a.buyDate.localeCompare(b.buyDate); return String(a.id).localeCompare(String(b.id)); }
+function sortLots(){ state.lots.sort(lotSort); }
+function toNumber(value){ const numValue = typeof value === "number" ? value : Number(value); return Number.isFinite(numValue) ? numValue : null; }
+function dateToIso(value){
+  if(!value) return "";
+  if(value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0,10);
+  if(typeof value === "number" && typeof XLSX !== "undefined" && XLSX.SSF) {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if(parsed) return `${parsed.y}-${String(parsed.m).padStart(2,"0")}-${String(parsed.d).padStart(2,"0")}`;
+  }
+  const text = String(value).trim();
+  if(!text) return "";
+  if(/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0,10);
+  const parsedDate = new Date(text);
+  if(!Number.isNaN(parsedDate.getTime())) return parsedDate.toISOString().slice(0,10);
+  return "";
+}
+
+function excelDateCell(isoDate){
+  if(!isoDate) return null;
+  const dt = new Date(isoDate + "T00:00:00");
+  return { t:"d", v: dt, z:"m/d/yyyy" };
+}
+function numberCell(value){
+  return typeof value === "number" && Number.isFinite(value) ? { t:"n", v:value } : null;
+}
+function textCell(value){
+  return value ? { t:"s", v:String(value) } : null;
+}
+function blankCell(){
+  return { t:"z", v:null };
+}
+function ensureCell(sheet, address){
+  if(!sheet[address]) sheet[address] = { t:"z", v:null };
+  return sheet[address];
+}
+function overwriteCell(sheet, address, cell){
+  if(cell){
+    const existing = sheet[address] || {};
+    sheet[address] = { ...existing, ...cell };
+    if(cell.t !== "s") delete sheet[address].w;
+  } else {
+    const existing = sheet[address] || {};
+    sheet[address] = { ...existing, t:"z", v:null };
+    delete sheet[address].w;
+  }
+}
+function clearEntryRange(sheet, startRow, endRow){
+  for(let row = startRow; row <= endRow; row += 1){
+    for(const col of ["E","G","H","I","J","K","L","N"]){
+      overwriteCell(sheet, `${col}${row}`, null);
+    }
+  }
+}
+
+function rowsForExport(){
+  const exportRows = [];
+  const lots = [...state.lots].sort(lotSort);
+  for(const lot of lots){
+    const sales = salesForLot(lot.id);
+    for(const sale of sales){
+      exportRows.push({
+        ticker: lot.ticker,
+        sleeve: lot.sleeve,
+        buyDate: lot.buyDate,
+        sharesBought: sale.sharesSold,
+        costPerShare: lot.costPerShare,
+        sellDate: sale.sellDate,
+        sharesSold: sale.sharesSold,
+        salePricePerShare: sale.salePricePerShare,
+        sharesRemaining: 0,
+        note: lot.note || "",
+        lotIdText: worksheetLotIdText(lot.ticker, lot.buyDate, lot.sharesBought, lot.costPerShare) || getDisplayLotId(lot)
+      });
+    }
+    if((lot.sharesRemaining || 0) > 0 || !sales.length){
+      exportRows.push({
+        ticker: lot.ticker,
+        sleeve: lot.sleeve,
+        buyDate: lot.buyDate,
+        sharesBought: lot.sharesRemaining || lot.sharesBought,
+        costPerShare: lot.costPerShare,
+        sellDate: "",
+        sharesSold: null,
+        salePricePerShare: null,
+        sharesRemaining: lot.sharesRemaining || lot.sharesBought,
+        note: lot.note || "",
+        lotIdText: worksheetLotIdText(lot.ticker, lot.buyDate, lot.sharesBought, lot.costPerShare) || getDisplayLotId(lot)
+      });
+    }
+  }
+  return exportRows.sort((a,b) => lotSort(a,b));
+}
+async function buildExportWorkbook(){
+  const response = await fetch(TEMPLATE_WORKBOOK_PATH, { cache:"no-store" });
+  if(!response.ok) throw new Error("Could not load the workbook template bundled with the app.");
+  const workbook = XLSX.read(await response.arrayBuffer(), { type:"array", cellDates:true, cellStyles:true });
+  const sheet = workbook.Sheets["1_Data Entry"] || workbook.Sheets[workbook.SheetNames[0]];
+  if(!sheet) throw new Error("Workbook template does not contain the 1_Data Entry sheet.");
+
+  const DATA_START_ROW = 6;
+  const DATA_END_ROW = 505;
+  const exportRows = rowsForExport();
+  const capacity = DATA_END_ROW - DATA_START_ROW + 1;
+  if(exportRows.length > capacity) throw new Error(`Too many rows to export (${exportRows.length}). Workbook capacity is ${capacity}.`);
+
+  clearEntryRange(sheet, DATA_START_ROW, DATA_END_ROW);
+
+  function writeRows(rows, startRow){
+    rows.forEach((row, index) => {
+      const excelRow = startRow + index;
+      overwriteCell(sheet, `E${excelRow}`, textCell(row.ticker));
+      overwriteCell(sheet, `G${excelRow}`, excelDateCell(row.buyDate));
+      overwriteCell(sheet, `H${excelRow}`, numberCell(row.sharesBought));
+      overwriteCell(sheet, `I${excelRow}`, numberCell(row.costPerShare));
+      overwriteCell(sheet, `J${excelRow}`, excelDateCell(row.sellDate));
+      overwriteCell(sheet, `K${excelRow}`, numberCell(row.sharesSold));
+      overwriteCell(sheet, `L${excelRow}`, numberCell(row.salePricePerShare));
+      overwriteCell(sheet, `N${excelRow}`, textCell(row.note || ""));
+    });
+  }
+
+  writeRows(exportRows, DATA_START_ROW);
+  return workbook;
+}
+
+
+
+
+function getLotById(lotId){ return state.lots.find(l => l.id === lotId); }
+function displayLotIdById(lotId){
+  const lot = getLotById(lotId);
+  return lot ? getDisplayLotId(lot) : String(lotId || "");
+}
+function sourceMatchedSharesMap(){
+  const map = {};
+  for(const match of (state.washMatches || [])){
+    map[match.sourceLotId] = (map[match.sourceLotId] || 0) + (match.matchedShares || 0);
+  }
+  return map;
+}
+function replacementMatchesForLot(lotId){
+  return (state.washMatches || []).filter(m => m.replacementLotId === lotId);
+}
+function sourceMatchesForLot(lotId){
+  return (state.washMatches || []).filter(m => m.sourceLotId === lotId);
+}
+function candidateLossLotsForReplacement(ticker, buyDate, sharesBought, excludeReplacementLotId){
+  const model = computeCalculatedModel();
+  const matchedMap = sourceMatchedSharesMap();
+  const rows = model.rows.filter(row =>
+    row.ticker === ticker &&
+    row.id !== excludeReplacementLotId &&
+    row.sellDate &&
+    row.realizedGainLoss < 0 &&
+    buyDate >= row.sellDate &&
+    daysBetween(row.sellDate, buyDate) <= 30
+  ).sort((a,b) =>
+    (a.sellDate || "").localeCompare(b.sellDate || "") ||
+    (a.buyDate || "").localeCompare(b.buyDate || "") ||
+    String(a.id).localeCompare(String(b.id))
+  );
+  let remainingBuyShares = sharesBought || 0;
+  const candidates = [];
+  for(const row of rows){
+    const soldShares = row.sharesSold || 0;
+    const alreadyMatched = matchedMap[row.id] || 0;
+    const availableShares = Math.max(0, soldShares - alreadyMatched);
+    if(!(availableShares > 0) || !(remainingBuyShares > 0)) continue;
+    const autoMatchShares = Math.min(availableShares, remainingBuyShares);
+    remainingBuyShares -= autoMatchShares;
+    const lossPerShare = row.lossPerShare || (soldShares ? Math.abs(row.realizedGainLoss || 0) / soldShares : 0);
+    candidates.push({
+      sourceLotId: row.id,
+      sourceLotDisplayId: row.lotIdText,
+      sourceSellDate: row.sellDate,
+      availableShares,
+      lossPerShare,
+      autoMatchShares
+    });
+  }
+  return candidates;
+}
+let pendingBuyDraft = null;
+function renderWashMatchDialog(){
+  const target = document.getElementById("washMatchTable");
+  const total = document.getElementById("washMatchTotal");
+  if(!target || !pendingBuyDraft) return;
+  const rows = pendingBuyDraft.candidates || [];
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table match-table"><thead><tr><th>Loss Lot</th><th>Shares Available</th><th>Loss/Share</th><th>Match Shares</th></tr></thead><tbody>${
+    rows.map((row, idx) => `<tr>
+      <td>${row.sourceLotDisplayId}</td>
+      <td>${num(row.availableShares)}</td>
+      <td>${currency(row.lossPerShare)}</td>
+      <td><input type="number" min="0" step="0.0001" max="${row.availableShares}" data-match-index="${idx}" value="${row.autoMatchShares}"></td>
+    </tr>`).join("")
+  }</tbody></table></div><p class="match-help">FIFO amounts are prefilled. Adjust them if you want to override the default matching.</p>`;
+  const update = () => {
+    let sum = 0;
+    target.querySelectorAll('input[data-match-index]').forEach(inp => {
+      const idx = Number(inp.dataset.matchIndex);
+      const max = rows[idx].availableShares;
+      let v = Number(inp.value);
+      if(!Number.isFinite(v) || v < 0) v = 0;
+      if(v > max) v = max;
+      inp.value = v ? String(v) : "";
+      sum += v;
+    });
+    total.textContent = `Matched Shares: ${num(sum)} / ${num(pendingBuyDraft.lot.sharesBought)}`;
+    total.style.color = sum > pendingBuyDraft.lot.sharesBought + 0.000001 ? 'var(--danger)' : 'var(--blue2)';
+  };
+  target.querySelectorAll('input[data-match-index]').forEach(inp => inp.addEventListener('input', update));
+  update();
+}
+function finalizeBuyWithMatches(matchRecords){
+  if(!pendingBuyDraft) return;
+  const lot = pendingBuyDraft.lot;
+  if(!Array.isArray(state.washMatches)) state.washMatches = [];
+  if(pendingBuyDraft.editLotId){
+    const idx = state.lots.findIndex(l => l.id === pendingBuyDraft.editLotId);
+    if(idx >= 0){
+      state.lots[idx] = lot;
+    } else {
+      state.lots.push(lot);
+    }
+    state.washMatches = state.washMatches.filter(m => m.replacementLotId !== pendingBuyDraft.editLotId);
+  } else {
+    state.lots.push(lot);
+  }
+  state.washMatches.push(...matchRecords);
+  sortLots();
+  saveState();
+  pendingBuyDraft = null;
+  resetLotDialogMode();
+  closeDialogs();
+  render();
+}
+
+function numericLotToken(value){
+  const n = toNumber(value);
+  if(n === null) return "";
+  const rounded = Math.round((n + Number.EPSILON) * 1000) / 1000;
+  if(Math.abs(rounded - Math.round(rounded)) < 0.0000001){
+    return String(Math.round(rounded));
+  }
+  const normalized = rounded.toFixed(3).replace(/0+$/,"").replace(/\.$/,"");
+  return normalized.replace(/\./g, "D");
+}
+function worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare){
+  const upperTicker = String(ticker || "").trim().toUpperCase();
+  const isoDate = dateToIso(buyDate);
+  const dateKey = isoDate ? isoDate.replace(/-/g, "") : "";
+  const sharesKey = numericLotToken(sharesBought);
+  const priceKey = numericLotToken(costPerShare);
+  if(!upperTicker || !dateKey || !sharesKey || !priceKey) return "";
+  return `${upperTicker}-${dateKey}-${sharesKey}-${priceKey}`;
+}
+function normalizeLotIdText(rawText, ticker, buyDate, sharesBought, costPerShare){
+  return worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare);
+}
+
+function normalizeLot(raw, index){
+  const ticker = String(raw?.ticker || "").trim().toUpperCase();
+  const buyDate = dateToIso(raw?.buyDate);
+  const sharesBought = toNumber(raw?.sharesBought);
+  const costPerShare = toNumber(raw?.costPerShare);
+  const sharesRemaining = toNumber(raw?.sharesRemaining);
+  if(!ticker || !buyDate || sharesBought === null || costPerShare === null || sharesRemaining === null) return null;
+  return {
+    id: String(raw?.id || `lot-${index+1}`),
+    ticker,
+    sleeve: raw?.sleeve === "International" || inferSleeve(ticker) === "International" ? "International" : "U.S.",
+    buyDate,
+    sharesBought,
+    costPerShare,
+    sharesRemaining,
+    parentLotId: raw?.parentLotId ? String(raw.parentLotId) : null,
+    lotIdText: normalizeLotIdText(raw?.lotIdText, ticker, buyDate, sharesBought, costPerShare),
+    importedBasisAdjustmentIn: toNumber(raw?.importedBasisAdjustmentIn) || 0,
+    importedAdjustedCostPerShare: toNumber(raw?.importedAdjustedCostPerShare),
+    note: raw?.note ? String(raw.note) : ""
+  };
+}
+
+function normalizeWashMatch(raw, index, lotIds){
+  const sourceLotId = String(raw?.sourceLotId || "").trim();
+  const replacementLotId = String(raw?.replacementLotId || "").trim();
+  const matchedShares = toNumber(raw?.matchedShares);
+  const lossPerShare = toNumber(raw?.lossPerShare);
+  const disallowedLoss = toNumber(raw?.disallowedLoss);
+  if(!sourceLotId || !replacementLotId || !lotIds.has(sourceLotId) || !lotIds.has(replacementLotId)) return null;
+  if(!(matchedShares > 0)) return null;
+  return {
+    id: String(raw?.id || `wash-${index+1}`),
+    sourceLotId,
+    replacementLotId,
+    matchedShares,
+    lossPerShare: lossPerShare ?? null,
+    disallowedLoss: disallowedLoss ?? ((lossPerShare ?? 0) * matchedShares),
+    sourceSellDate: dateToIso(raw?.sourceSellDate),
+    replacementBuyDate: dateToIso(raw?.replacementBuyDate)
+  };
+}
+
+function normalizeSale(raw, index, lotIds){
+  const lotId = String(raw?.lotId || "").trim();
+  const sellDate = dateToIso(raw?.sellDate);
+  const sharesSold = toNumber(raw?.sharesSold);
+  const salePricePerShare = toNumber(raw?.salePricePerShare);
+  if(!lotId || !lotIds.has(lotId) || !sellDate || sharesSold === null || salePricePerShare === null || !(sharesSold > 0) || !(salePricePerShare > 0)) return null;
+  return {
+    id: String(raw?.id || `sale-${index+1}`),
+    lotId,
+    sellDate,
+    sharesSold,
+    salePricePerShare
+  };
+}
+function normalizeState(raw){
+  const parsedLots = Array.isArray(raw?.lots) ? raw.lots.map(normalizeLot).filter(Boolean) : [];
+  const originalLotMap = new Map(parsedLots.map(l => [l.id, l]));
+  const rootLotId = (lotId) => {
+    let current = originalLotMap.get(lotId);
+    while(current && current.parentLotId && originalLotMap.has(current.parentLotId)){
+      current = originalLotMap.get(current.parentLotId);
+    }
+    return current ? current.id : lotId;
+  };
+  const rootLots = parsedLots.filter(l => !l.parentLotId);
+  const rootIds = new Set(rootLots.map(l => l.id));
+  const remappedSales = [];
+  if(Array.isArray(raw?.sales)){
+    raw.sales.forEach((sale, idx) => {
+      const lotId = rootLotId(String(sale?.lotId || ""));
+      const normalized = normalizeSale({...sale, lotId}, idx, rootIds);
+      if(normalized) remappedSales.push(normalized);
+    });
+  }
+  const rootIdsForWash = new Set(rootLots.map(l => l.id));
+  const washMatches = Array.isArray(raw?.washMatches)
+    ? raw.washMatches.map((match, idx) => normalizeWashMatch(match, idx, rootIdsForWash)).filter(Boolean)
+    : [];
+  return {
+    lots: rootLots.sort(lotSort),
+    sales: remappedSales.sort((a,b) => (a.sellDate || "").localeCompare(b.sellDate || "")),
+    washMatches
+  };
+}
+
+function seedIfEmpty(){
+
+  if(state.lots.length || state.sales.length) return;
+  if(localStorage.getItem(SUPPRESS_SEED_KEY) === "1") return;
+  state = normalizeState(deepClone(DEFAULT_STATE));
+  saveState();
+}
+
+function salesForLot(lotId){ return state.sales.filter(s => s.lotId===lotId).sort((a,b)=>a.sellDate.localeCompare(b.sellDate)); }
+
+function getDisplayLotId(lot){
+  return normalizeLotIdText(lot.lotIdText, lot.ticker, lot.buyDate, lot.sharesBought, lot.costPerShare);
+}
+function hasAdjustedBasis(row){
+  const hasBasisIn = (row.basisAdjustmentIn || 0) > 0.000001;
+  const hasAdjustedCost =
+    typeof row.adjustedCostPerShare === "number" &&
+    typeof row.costPerShare === "number" &&
+    Math.abs(row.adjustedCostPerShare - row.costPerShare) > 0.000001;
+
+  return hasBasisIn && hasAdjustedCost;
+}
+function salesHistoryForLot(lot){
+  const sales = salesForLot(lot.id);
+  const rows = sales.map((sale) => {
+    const proceeds = sale.sharesSold * sale.salePricePerShare;
+    const gainLoss = sale.sharesSold * (sale.salePricePerShare - lot.costPerShare);
+    return {
+      type: "sale",
+      sellDate: sale.sellDate,
+      sharesSold: sale.sharesSold,
+      salePricePerShare: sale.salePricePerShare,
+      proceeds,
+      gainLoss
+    };
+  });
+  if((lot.sharesRemaining || 0) > 0){
+    rows.push({
+      type: "open",
+      sellDate: "",
+      sharesSold: lot.sharesRemaining,
+      salePricePerShare: null,
+      proceeds: null,
+      gainLoss: null
+    });
+  }
+  return rows;
+}
+function salesHistoryTable(lot){
+  const model = computeCalculatedModel();
+  const rows = salesHistoryForLot(lot).map((row) => {
+    if(row.type === "sale"){
+      const sale = salesForLot(lot.id).find(s => s.sellDate === row.sellDate && s.sharesSold === row.sharesSold && s.salePricePerShare === row.salePricePerShare);
+      if(sale) row.id = sale.id;
+      if(row.id && model.saleGainLossById[row.id] !== undefined){
+        row.gainLoss = model.saleGainLossById[row.id];
+      }
+    }
+    return row;
+  });
+  if(!rows.length){
+    return `<div class="empty-mini">No sale activity yet.</div>`;
+  }
+  const body = rows.map((row) => {
+    if(row.type === "open"){
+      return `<tr class="open-row"><td>Open shares</td><td>${num(row.sharesSold)}</td><td>—</td><td>—</td><td>—</td><td></td></tr>`;
+    }
+    return `<tr><td>${dateFmt(row.sellDate)}</td><td>${num(row.sharesSold)}</td><td>${currency(row.salePricePerShare)}</td><td>${currency(row.proceeds)}</td><td>${currency(row.gainLoss)}</td><td><div class="stacked-table-actions"><button type="button" class="secondary-btn table-btn delete-btn stacked-btn" onclick="deleteSale('${row.id}')">Delete</button><button type="button" class="secondary-btn table-btn edit-btn stacked-btn" onclick="openEditSaleDialog('${row.id}')">Edit</button></div></td></tr>`;
+  }).join("");
+  return `<div class="table-wrap"><table class="sales-table"><thead><tr><th>Sale Date</th><th>Shares</th><th>Sale Price</th><th>Proceeds</th><th>Gain / (Loss)</th><th>Action</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+
+function computeCalculatedModel(){
+  const lots = [...state.lots].sort(lotSort);
+  const lotMap = new Map(lots.map(lot => [lot.id, lot]));
+  const sales = [...state.sales].sort((a,b) =>
+    (a.sellDate || "").localeCompare(b.sellDate || "") ||
+    String(a.lotId).localeCompare(String(b.lotId)) ||
+    String(a.id).localeCompare(String(b.id))
+  );
+
+  const basisIn = {};
+  const basisSourceLotIds = {};
+  const replacementUsage = {};
+  const explicitSourceUsage = {};
+  const explicitReplacementIdsBySource = {};
+  const saleGainLossById = {};
+  const perLot = {};
+
+  for(const match of (state.washMatches || [])){
+    const sourceLot = lotMap.get(match.sourceLotId);
+    const replacementLot = lotMap.get(match.replacementLotId);
+    if(!sourceLot || !replacementLot) continue;
+    const matchedShares = Math.max(0, match.matchedShares || 0);
+    const lossPerShare = Math.max(0, match.lossPerShare || ((matchedShares > 0 && match.disallowedLoss) ? match.disallowedLoss / matchedShares : 0));
+    const disallowedLoss = match.disallowedLoss ?? (matchedShares * lossPerShare);
+    explicitSourceUsage[match.sourceLotId] = (explicitSourceUsage[match.sourceLotId] || 0) + matchedShares;
+    basisIn[match.replacementLotId] = (basisIn[match.replacementLotId] || 0) + disallowedLoss;
+    if(!basisSourceLotIds[match.replacementLotId]) basisSourceLotIds[match.replacementLotId] = new Set();
+    basisSourceLotIds[match.replacementLotId].add(match.sourceLotId);
+    if(!explicitReplacementIdsBySource[match.sourceLotId]) explicitReplacementIdsBySource[match.sourceLotId] = new Set();
+    explicitReplacementIdsBySource[match.sourceLotId].add(match.replacementLotId);
+  }
+
+  for(const lot of lots){
+    perLot[lot.id] = {
+      candidateMatchedShares: 0,
+      candidateReplacementCount: 0,
+      suggestedReplacementLotId: "",
+      appliedReplacementLotIds: new Set(),
+      disallowedWashLoss: 0,
+      lossPerShare: null,
+      matchStatus: "",
+      washSale: false,
+      saleProceeds: 0,
+      realizedGainLoss: 0,
+      sharesSold: 0,
+      sellDate: "",
+      salePricePerShare: null,
+      replacementLotsUsed: new Set()
+    };
+  }
+
+  for(const sale of sales){
+    const lot = lotMap.get(sale.lotId);
+    if(!lot) continue;
+    const lotStats = perLot[lot.id];
+    const basisAdjustmentIn = (basisIn[lot.id] || 0) + (lot.importedBasisAdjustmentIn || 0);
+    const adjustedCostPerShare = typeof lot.importedAdjustedCostPerShare === "number"
+      ? lot.importedAdjustedCostPerShare
+      : (lot.sharesBought ? ((lot.sharesBought * lot.costPerShare) + basisAdjustmentIn) / lot.sharesBought : lot.costPerShare);
+    const gainLoss = sale.sharesSold * (sale.salePricePerShare - adjustedCostPerShare);
+
+    saleGainLossById[sale.id] = gainLoss;
+    lotStats.sharesSold += sale.sharesSold;
+    lotStats.saleProceeds += sale.sharesSold * sale.salePricePerShare;
+    lotStats.realizedGainLoss += gainLoss;
+    lotStats.sellDate = sale.sellDate;
+    lotStats.salePricePerShare = sale.salePricePerShare;
+
+    if(!(gainLoss < 0) || !sale.sellDate) continue;
+
+    const lossPerShare = Math.abs(gainLoss) / sale.sharesSold;
+    lotStats.lossPerShare = lossPerShare;
+
+    const explicitMatchedShares = explicitSourceUsage[lot.id] || 0;
+    const explicitReplacementIds = [...(explicitReplacementIdsBySource[lot.id] || new Set())];
+    if(explicitMatchedShares > 0){
+      lotStats.candidateMatchedShares += explicitMatchedShares;
+      lotStats.disallowedWashLoss += explicitMatchedShares * lossPerShare;
+      explicitReplacementIds.forEach(id => {
+        lotStats.appliedReplacementLotIds.add(id);
+        lotStats.replacementLotsUsed.add(id);
+      });
+      lotStats.candidateReplacementCount += explicitReplacementIds.length;
+      if(!lotStats.suggestedReplacementLotId && explicitReplacementIds.length === 1){
+        lotStats.suggestedReplacementLotId = explicitReplacementIds[0];
+      }
+      lotStats.washSale = true;
+      lotStats.matchStatus = "Wash loss carried into replacement lot basis";
+    }
+
+    let sharesToMatch = Math.max(0, sale.sharesSold - explicitMatchedShares);
+    const candidates = lots.filter(other =>
+      other.id !== lot.id &&
+      other.ticker === lot.ticker &&
+      other.buyDate &&
+      other.buyDate >= sale.sellDate &&
+      daysBetween(sale.sellDate, other.buyDate) <= 30
+    ).sort((a,b) =>
+      a.buyDate.localeCompare(b.buyDate) ||
+      String(a.id).localeCompare(String(b.id))
+    );
+
+    const matchedCandidateIds = [];
+    for(const candidate of candidates){
+      const used = replacementUsage[candidate.id] || 0;
+      const available = Math.max(0, (candidate.sharesBought || 0) - used);
+      if(!(available > 0) || !(sharesToMatch > 0)) continue;
+      const matchedShares = Math.min(sharesToMatch, available);
+      replacementUsage[candidate.id] = used + matchedShares;
+      basisIn[candidate.id] = (basisIn[candidate.id] || 0) + (matchedShares * lossPerShare);
+      if(!basisSourceLotIds[candidate.id]) basisSourceLotIds[candidate.id] = new Set();
+      basisSourceLotIds[candidate.id].add(lot.id);
+      sharesToMatch -= matchedShares;
+
+      lotStats.candidateMatchedShares += matchedShares;
+      lotStats.disallowedWashLoss += matchedShares * lossPerShare;
+      lotStats.appliedReplacementLotIds.add(candidate.id);
+      lotStats.replacementLotsUsed.add(candidate.id);
+      matchedCandidateIds.push(candidate.id);
+    }
+
+    lotStats.candidateReplacementCount += matchedCandidateIds.length;
+    if(!lotStats.suggestedReplacementLotId && matchedCandidateIds.length === 1 && explicitReplacementIds.length === 0){
+      lotStats.suggestedReplacementLotId = matchedCandidateIds[0];
+    }
+    if(lotStats.candidateMatchedShares > 0){
+      lotStats.washSale = true;
+      lotStats.matchStatus = "Wash loss carried into replacement lot basis";
+    }
+  }
+
+  const rows = lots.map((lot, idx) => {
+    const lotStats = perLot[lot.id];
+    const totalCost = lot.sharesBought * lot.costPerShare;
+    const basisAdjustmentIn = (basisIn[lot.id] || 0) + (lot.importedBasisAdjustmentIn || 0);
+    const adjustedTotalBasis = totalCost + basisAdjustmentIn;
+    const adjustedCostPerShare = typeof lot.importedAdjustedCostPerShare === "number"
+      ? lot.importedAdjustedCostPerShare
+      : (lot.sharesBought ? adjustedTotalBasis / lot.sharesBought : 0);
+    const appliedReplacementLotIds = [...lotStats.appliedReplacementLotIds];
+    const appliedReplacementLotId = appliedReplacementLotIds.length === 1
+      ? appliedReplacementLotIds[0]
+      : (lotStats.suggestedReplacementLotId || "");
+    const sourceWashLotIds = [...(basisSourceLotIds[lot.id] || new Set())];
+    let matchStatus = "";
+    if(basisAdjustmentIn > 0){
+      const replacementMatches = replacementMatchesForLot(lot.id);
+      const groupedSources = [];
+      const sourceMap = new Map();
+      for(const match of replacementMatches){
+        const key = match.sourceLotId;
+        sourceMap.set(key, (sourceMap.get(key) || 0) + (match.matchedShares || 0));
+      }
+      for(const [sourceId, matchedShares] of sourceMap.entries()){
+        groupedSources.push(`${displayLotIdById(sourceId)}${matchedShares ? ` (${num(matchedShares)})` : ""}`);
+      }
+      matchStatus = groupedSources.length
+        ? `Replacement lot receiving wash basis: ${groupedSources.join(" & ")}`
+        : (sourceWashLotIds.length ? `Replacement lot receiving wash basis: ${sourceWashLotIds.map(id => displayLotIdById(id)).join(" & ")}` : "Replacement lot receiving wash basis");
+    } else if(lotStats.matchStatus){
+      const sourceMatches = sourceMatchesForLot(lot.id);
+      const groupedReplacements = [];
+      const replacementMap = new Map();
+      for(const match of sourceMatches){
+        const key = match.replacementLotId;
+        replacementMap.set(key, (replacementMap.get(key) || 0) + (match.matchedShares || 0));
+      }
+      for(const [replacementId, matchedShares] of replacementMap.entries()){
+        groupedReplacements.push(`${displayLotIdById(replacementId)}${matchedShares ? ` (${num(matchedShares)})` : ""}`);
+      }
+      const unmatchedWashShares = Math.max(0, (lotStats.sharesSold || 0) - (lotStats.candidateMatchedShares || 0));
+      matchStatus = groupedReplacements.length
+        ? `Wash loss carried into replacement lot basis: ${groupedReplacements.join(" & ")} • Unmatched wash shares: ${num(unmatchedWashShares)}`
+        : (appliedReplacementLotIds.length ? `Wash loss carried into replacement lot basis: ${appliedReplacementLotIds.map(id => displayLotIdById(id)).join(" & ")} • Unmatched wash shares: ${num(unmatchedWashShares)}` : lotStats.matchStatus);
+    }
+
+    return {
+      trackerRow: idx + 1,
+      ...lot,
+      totalCost,
+      saleProceeds: lotStats.sharesSold ? lotStats.saleProceeds : null,
+      realizedGainLoss: lotStats.sharesSold ? lotStats.realizedGainLoss : null,
+      sharesSold: lotStats.sharesSold,
+      sellDate: lotStats.sellDate,
+      salePricePerShare: lotStats.salePricePerShare,
+      washSale: lotStats.washSale ? "Yes" : "No",
+      lotIdText: getDisplayLotId(lot),
+      lossPerShare: lotStats.lossPerShare,
+      candidateMatchedShares: lotStats.candidateMatchedShares,
+      candidateReplacementCount: lotStats.candidateReplacementCount,
+      suggestedReplacementLotId: lotStats.suggestedReplacementLotId,
+      appliedReplacementLotId,
+      appliedReplacementLotIds,
+      sourceWashLotIds,
+      disallowedWashLoss: lotStats.disallowedWashLoss,
+      basisAdjustmentIn,
+      adjustedTotalBasis,
+      adjustedCostPerShare,
+      hasAdjustedBasis: (typeof adjustedCostPerShare === "number" && Math.abs(adjustedCostPerShare - lot.costPerShare) > 0.000001) || basisAdjustmentIn > 0.000001,
+      showWashTag: lotStats.washSale,
+      showAdjustedBasisTag: (((typeof adjustedCostPerShare === "number" && Math.abs(adjustedCostPerShare - lot.costPerShare) > 0.000001) || basisAdjustmentIn > 0.000001) && !lotStats.washSale) || basisAdjustmentIn > 0.000001,
+      matchStatus,
+      dataEntryStatus: rowStatus(lot, {sharesSold:lotStats.sharesSold, saleProceeds:lotStats.saleProceeds, realizedGainLoss:lotStats.realizedGainLoss, sellDate:lotStats.sellDate, salePricePerShare:lotStats.salePricePerShare}),
+      saleGainLossById
+    };
+  });
+
+  return { rows, saleGainLossById };
+}
+
+function realizedForLot(lot){
+  const model = computeCalculatedModel();
+  const row = model.rows.find(r => r.id === lot.id);
+  if(!row) return {sharesSold:0,saleProceeds:null,realizedGainLoss:null,sellDate:"",salePricePerShare:null};
+  return {
+    sharesSold: row.sharesSold || 0,
+    saleProceeds: row.saleProceeds,
+    realizedGainLoss: row.realizedGainLoss,
+    sellDate: row.sellDate || "",
+    salePricePerShare: row.salePricePerShare
+  };
+}
+
+function rowStatus(lot, realized){
+  if(realized.sharesSold===0 && approxEqual(lot.sharesRemaining, lot.sharesBought)) return "Open lot";
+  if(lot.sharesRemaining<0 || lot.sharesRemaining>lot.sharesBought) return "Check row";
+  if(lot.sharesRemaining===0 && realized.sharesSold>0) return "Closed lot";
+  if(lot.sharesRemaining>0 && lot.sharesRemaining<lot.sharesBought) return "Partially sold";
+  return "Check row";
+}
+
+function computeWash(lot){
+  const row = computeCalculatedModel().rows.find(r => r.id === lot.id);
+  if(!row){
+    return {washSale:false,candidateMatchedShares:0,candidateReplacementCount:0,suggestedReplacementLotId:"",appliedReplacementLotId:"",disallowedWashLoss:0,lossPerShare:null,matchStatus:""};
+  }
+  return {
+    washSale: row.washSale === "Yes",
+    candidateMatchedShares: row.candidateMatchedShares,
+    candidateReplacementCount: row.candidateReplacementCount,
+    suggestedReplacementLotId: row.suggestedReplacementLotId,
+    appliedReplacementLotId: row.appliedReplacementLotId,
+    disallowedWashLoss: row.disallowedWashLoss,
+    lossPerShare: row.lossPerShare,
+    matchStatus: row.matchStatus || ""
+  };
+}
+
+function computedRows(){
+  return computeCalculatedModel().rows;
+}
+
+function addDays
+(isoDate, days){
+  if(!isoDate) return "";
+  const dt = new Date(isoDate + "T00:00:00");
+  dt.setDate(dt.getDate() + days);
+  return dt.toISOString().slice(0,10);
+}
+function todayIso(){
+  const dt = new Date();
+  const local = new Date(dt.getTime() - dt.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,10);
+}
+
+function countdownSummaryRows(){
+  const rows = computedRows();
+  const byTicker = new Map();
+  for(const row of rows){
+    const ticker = row.ticker;
+    const existing = byTicker.get(ticker) || {
+      ticker,
+      recentBuyEndsDate: "",
+      latestLossSaleDate: "",
+      rebuyDate: "",
+      daysUntilRebuy: ""
+    };
+    if(row.buyDate){
+      const daysSinceBuy = daysBetween(row.buyDate, todayIso());
+      if(daysSinceBuy >= 0 && daysSinceBuy <= 30){
+        const recentBuyEndsDate = addDays(row.buyDate, 30);
+        if(!existing.rebuyDate || row.buyDate > existing.rebuyDate){
+          existing.rebuyDate = row.buyDate;
+          existing.recentBuyEndsDate = recentBuyEndsDate;
+          existing.daysUntilRebuy = Math.max(0, daysBetween(todayIso(), recentBuyEndsDate));
+        }
+      }
+    }
+    const basisPerShare = (typeof row.adjustedCostPerShare === "number" && row.adjustedCostPerShare > 0) ? row.adjustedCostPerShare : row.costPerShare;
+    for(const sale of salesForLot(row.id)){
+      const gainLoss = sale.sharesSold * (sale.salePricePerShare - basisPerShare);
+      if(gainLoss < 0 && (!existing.latestLossSaleDate || sale.sellDate > existing.latestLossSaleDate)){
+        existing.latestLossSaleDate = sale.sellDate;
+      }
+    }
+    byTicker.set(ticker, existing);
+  }
+  return [...byTicker.values()]
+    .filter(row => !!row.rebuyDate && (row.daysUntilRebuy === "" || Number(row.daysUntilRebuy) >= 0))
+    .sort((a,b) => (a.recentBuyEndsDate || "").localeCompare(b.recentBuyEndsDate || "") || a.ticker.localeCompare(b.ticker));
+}
+
+function ytdCapitalSummary(){
+  const year = new Date().getFullYear();
+  let shortTermGains = 0;
+  let shortTermLosses = 0;
+  let longTermGains = 0;
+  let longTermLosses = 0;
+  const model = computeCalculatedModel();
+  const lotMap = new Map(state.lots.map(l => [l.id, l]));
+  for(const sale of state.sales){
+    if(!sale.sellDate || Number(sale.sellDate.slice(0,4)) !== year) continue;
+    const lot = lotMap.get(sale.lotId);
+    if(!lot || !lot.buyDate) continue;
+    const gainLoss = model.saleGainLossById[sale.id] ?? 0;
+    const holdingDays = daysBetween(lot.buyDate, sale.sellDate);
+    const isLongTerm = holdingDays > 365;
+    if(isLongTerm){
+      if(gainLoss >= 0) longTermGains += gainLoss;
+      else longTermLosses += gainLoss;
+    } else {
+      if(gainLoss >= 0) shortTermGains += gainLoss;
+      else shortTermLosses += gainLoss;
+    }
+  }
+  return {
+    year,
+    shortTermGains,
+    shortTermLosses,
+    shortTermNet: shortTermGains + shortTermLosses,
+    longTermGains,
+    longTermLosses,
+    longTermNet: longTermGains + longTermLosses,
+    totalNet: shortTermGains + shortTermLosses + longTermGains + longTermLosses
+  };
+}
+
+function renderCountdownSummaryTable(){
+  const target = document.getElementById("countdownSummaryTable");
+  if(!target) return;
+  const rows = countdownSummaryRows();
+  if(!rows.length){
+    target.innerHTML = `<div class="empty-mini">No tickers currently show Recent Buy = Yes.</div>`;
+    return;
+  }
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact countdown-table"><thead><tr><th>Ticker</th><th>Rebuy Date</th><th>Latest Loss Sale</th><th>Recent Buy Ends</th><th>Days Left</th></tr></thead><tbody>${rows.map(row => `<tr><td>${row.ticker}</td><td>${dateFmt(row.rebuyDate)}</td><td>${row.latestLossSaleDate ? dateFmt(row.latestLossSaleDate) : ""}</td><td>${dateFmt(row.recentBuyEndsDate)}</td><td>${row.daysUntilRebuy === "" ? "" : row.daysUntilRebuy}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+function renderYtdCapitalSummaryTable(){
+  const target = document.getElementById("ytdCapitalSummaryTable");
+  if(!target) return;
+  const summary = ytdCapitalSummary();
+  const totalStyle = summary.totalNet > 0
+    ? "color:#8b1e1e;font-weight:400;white-space:nowrap;text-align:right;"
+    : (summary.totalNet < 0
+      ? "color:#1f5f2c;font-weight:400;white-space:nowrap;text-align:right;"
+      : "color:var(--blue2);font-weight:400;white-space:nowrap;text-align:right;");
+  target.innerHTML = `<div class="table-wrap"><table class="sales-table summary-table compact ytd-table ytd-stacked"><thead><tr><th>Year</th><th>Category</th><th>Gains</th><th>Losses</th><th>Net</th></tr></thead><tbody><tr><td>${summary.year}</td><td>Short-Term</td><td>${currency(summary.shortTermGains)}</td><td>${currency(summary.shortTermLosses)}</td><td>${currency(summary.shortTermNet)}</td></tr><tr><td>${summary.year}</td><td>Long-Term</td><td>${currency(summary.longTermGains)}</td><td>${currency(summary.longTermLosses)}</td><td>${currency(summary.longTermNet)}</td></tr><tr class="total-row"><td>${summary.year}</td><td>Total</td><td>—</td><td>—</td><td style="${totalStyle}">${currency(summary.totalNet)}</td></tr></tbody></table></div>`;
+}
+
+
+function rowYearBucket(row){
+  const saleDates = salesForLot(row.id).map(s => s.sellDate).filter(Boolean).sort();
+  if(saleDates.length){
+    const latestSaleDate = saleDates[saleDates.length - 1];
+    return String(latestSaleDate).slice(0,4);
+  }
+  return String(new Date().getFullYear());
+}
+
+function rowPassesYearFilter(row){
+  if(activeYearFilter === "all") return true;
+  return rowYearBucket(row) === String(activeYearFilter);
+}
+
+function renderYearFilterBar(){
+  const target = document.getElementById("yearFilterBar");
+  if(!target) return;
+  const years = ["all"];
+  for(let y = 2026; y <= 2041; y += 1) years.push(String(y));
+  target.innerHTML = years.map(year => {
+    const label = year === "all" ? "All" : year;
+    const active = activeYearFilter === year ? " active" : "";
+    return `<button type="button" class="year-filter-btn${active}" data-year-filter="${year}">${label}</button>`;
+  }).join("");
+  target.querySelectorAll("[data-year-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      activeYearFilter = btn.dataset.yearFilter;
+      render();
+    });
+  });
+}
+
+function overallSummary(){
+  const rows = computedRows();
+  return {
+    openLots: rows.filter(r => r.dataEntryStatus === "Open lot" || r.dataEntryStatus === "Partially sold").length,
+    closedLots: rows.filter(r => r.dataEntryStatus === "Closed lot").length,
+    washSaleCount: rows.filter(r => r.washSale === "Yes").length
+  };
+}
+
+function matchesFilter(row, filterKey){
+  if(filterKey === "open"){
+    return row.dataEntryStatus === "Open lot" || row.dataEntryStatus === "Partially sold";
+  }
+  if(filterKey === "closed"){
+    return row.dataEntryStatus === "Closed lot";
+  }
+  if(filterKey === "wash"){
+    return row.washSale === "Yes";
+  }
+  return false;
+}
+
+function rowPassesActiveFilters(row){
+  if(!activeFilters.size) return true;
+  for(const filterKey of activeFilters){
+    if(matchesFilter(row, filterKey)) return true;
+  }
+  return false;
+}
+
+function applyFilterStyles(){
+  document.querySelectorAll(".filter-toggle").forEach(btn => {
+    btn.classList.toggle("active", activeFilters.has(btn.dataset.filter));
+  });
+}
+
+
+function render(){
+  const rows = computedRows();
+  const filteredRows = rows.filter(r => rowPassesYearFilter(r));
+  const usRows = filteredRows.filter(r => r.sleeve === "U.S." && rowPassesActiveFilters(r));
+  const intlRows = filteredRows.filter(r => r.sleeve === "International" && rowPassesActiveFilters(r));
+  const washRows = filteredRows.filter(r => r.washSale === "Yes" && typeof r.realizedGainLoss === "number" && r.realizedGainLoss < 0);
+
+  const summary = overallSummary();
+  document.getElementById("totalOpenLots").textContent = summary.openLots;
+  document.getElementById("totalClosedLots").textContent = summary.closedLots;
+  document.getElementById("totalWashCount").textContent = summary.washSaleCount;
+
+  applyFilterStyles();
+  renderYearFilterBar();
+  renderCountdownSummaryTable();
+  renderYtdCapitalSummaryTable();
+  renderLotCards(document.getElementById("usList"), usRows);
+  renderLotCards(document.getElementById("intlList"), intlRows);
+  renderWashCards(document.getElementById("washList"), washRows);
+}
+
+
+function renderLotCards(target, rows){
+  if(!rows.length){
+    target.innerHTML = `<div class="empty-state">No lots match the current filters.</div>`;
+    return;
+  }
+  target.innerHTML = rows.map(r => {
+    const statusClass = r.dataEntryStatus === "Open lot" ? "status-open" : "status";
+    return `
+    <article class="lot-row" data-lot-id="${r.id}" role="button" tabindex="0" aria-label="Open ${r.ticker} lot">
+      <div class="lot-row-main">
+        <div class="lot-row-left">
+          <div class="lot-row-title">${r.ticker}<span class="lot-row-inline-meta"> - ${dateFmt(r.buyDate)} - ${num(r.sharesRemaining)} remaining</span></div>
+          <div class="lot-row-sub">${r.lotIdText}</div>
+        </div>
+        <div class="lot-row-right">
+          <span class="badge ${statusClass}">${r.dataEntryStatus}</span>
+          ${r.showWashTag ? `<span class="badge wash">Wash</span>` : ``}
+          ${r.showAdjustedBasisTag ? `<span class="badge adj">Adj. Basis</span>` : ``}
+        </div>
+      </div>
+    </article>
+  `}).join("");
+}
+
+
+function openLotOverview(lotId){
+  const r = computedRows().find(x => x.id === lotId);
+  if(!r) return;
+  document.getElementById("overviewTitle").textContent = `${r.ticker} Lot`;
+  document.getElementById("overviewBody").innerHTML = `
+    <div class="detail-grid compact-overview-grid">
+      <div class="detail-card"><span class="label">Lot ID</span><span class="value">${r.lotIdText}</span></div>
+      <div class="detail-card"><span class="label">Status</span><span class="value">${r.dataEntryStatus}</span></div>
+      <div class="detail-card"><span class="label">Buy Date</span><span class="value">${dateFmt(r.buyDate)}</span></div>
+      <div class="detail-card"><span class="label">Shares Remaining</span><span class="value">${num(r.sharesRemaining)}</span></div>
+      <div class="detail-card"><span class="label">Shares Bought</span><span class="value">${num(r.sharesBought)}</span></div>
+      <div class="detail-card"><span class="label">Cost / Share</span><span class="value">${currency(r.costPerShare)}</span></div>
+    </div>
+    ${r.matchStatus ? `<p class="lot-sub overview-note">${r.matchStatus}</p>` : ``}
+    <div class="detail-section">
+      <h4>Sales History</h4>
+      ${salesHistoryTable(r)}
+    </div>
+  `;
+  const actions = [];
+  actions.push(`<button type="button" class="secondary-btn" onclick="closeDialogs()">Close</button>`);
+  actions.push(`<button type="button" class="secondary-btn" onclick="openDetail('${r.id}')">Details</button>`);
+  actions.push(`<button type="button" class="secondary-btn delete-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>`);
+  actions.push(`<button type="button" class="secondary-btn edit-btn" onclick="openEditBuyDialog('${r.id}')">Edit Buy</button>`);
+  if(r.sharesRemaining > 0){
+    actions.push(`<button type="button" class="primary-btn buy-btn" onclick="closeDialogs(); openSaleDialog('${r.id}')">Record Sale</button>`);
+  }
+  document.getElementById("overviewActions").innerHTML = actions.join("");
+  document.getElementById("overviewDialog").showModal();
+}
+
+function renderWashCards(target, rows){
+  if(!rows.length){
+    target.innerHTML = `<div class="empty-state">No active wash-sale rows.</div>`;
+    return;
+  }
+  target.innerHTML = rows.map(r => `
+    <article class="lot-card">
+      <div class="lot-top">
+        <div class="lot-meta">
+          <div class="lot-ticker">${r.ticker}</div>
+          <div class="lot-sub">Sold Lot ID: ${r.lotIdText}</div>
+        </div>
+        <div class="badges">
+          <span class="badge wash">${dateFmt(r.sellDate)}</span>
+        </div>
+      </div>
+      <div class="lot-core">
+        <div class="core-item"><span class="label">Realized Loss</span><span class="value">${currency(Math.abs(r.realizedGainLoss || 0))}</span></div>
+        <div class="core-item"><span class="label">Matched Shares</span><span class="value">${num(r.candidateMatchedShares)}</span></div>
+        <div class="core-item"><span class="label">Disallowed Wash Loss</span><span class="value">${currency(r.disallowedWashLoss)}</span></div>
+        <div class="core-item"><span class="label">Replacement Lot ID</span><span class="value">${r.appliedReplacementLotId ? displayLotIdById(r.appliedReplacementLotId) : ""}</span></div>
+      </div>
+      ${r.matchStatus ? `<div class="lot-sub" style="margin-top:10px;color:#234a73;font-weight:700">${r.matchStatus}</div>` : ``}
+    </article>
+  `).join("");
+}
+
+function openLotDialog(sleeve){
+  document.getElementById("lotSleeve").value = sleeve;
+  document.getElementById("lotTicker").value = "";
+  document.getElementById("lotBuyDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("lotShares").value = "";
+  document.getElementById("lotCost").value = "";
+  document.getElementById("lotNote").value = "";
+  document.getElementById("lotDialog").showModal();
+}
+
+function openSaleDialog(lotId){
+  resetSaleDialogMode();
+  const lot = state.lots.find(l => l.id === lotId);
+  document.getElementById("saleLotId").value = lotId;
+  document.getElementById("saleContext").textContent = `${lot.ticker} • Buy ${dateFmt(lot.buyDate)} • Shares Remaining ${num(lot.sharesRemaining)} • Cost/Share ${currency(lot.costPerShare)}`;
+  document.getElementById("saleDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("saleShares").value = "";
+  document.getElementById("salePrice").value = "";
+  document.getElementById("saleDialog").showModal();
+}
+
+
+let currentDetailLotId = "";
+function openDetail(lotId){
+  const r = computedRows().find(x => x.id === lotId);
+  if(!r) return;
+  currentDetailLotId = lotId;
+  const summaryBtn = document.getElementById("summaryFromDetail");
+  if(summaryBtn) summaryBtn.style.display = "";
+  document.getElementById("detailTitle").textContent = `${r.ticker} Details`;
+  document.getElementById("detailBody").innerHTML = `
+    <div class="detail-section">
+      <h4>Lot Details</h4>
+      <div class="detail-grid">
+        <div class="detail-card"><span class="label">Buy Date</span><span class="value">${dateFmt(r.buyDate)}</span></div>
+        <div class="detail-card"><span class="label">Lot ID</span><span class="value">${r.lotIdText}</span></div>
+        <div class="detail-card"><span class="label">Shares Bought</span><span class="value">${num(r.sharesBought)}</span></div>
+        <div class="detail-card"><span class="label">Shares Remaining</span><span class="value">${num(r.sharesRemaining)}</span></div>
+        <div class="detail-card"><span class="label">Cost / Share</span><span class="value">${currency(r.costPerShare)}</span></div>
+        <div class="detail-card"><span class="label">Status</span><span class="value">${r.dataEntryStatus}</span></div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <h4>Sales History</h4>
+      ${salesHistoryTable(r)}
+    </div>
+    <div class="detail-section">
+      <h4>Wash / Basis</h4>
+      <div class="detail-grid">
+        <div class="detail-card"><span class="label">Wash Sale?</span><span class="value">${r.washSale}</span></div>
+        <div class="detail-card"><span class="label">Matched Shares</span><span class="value">${num(r.candidateMatchedShares)}</span></div>
+        <div class="detail-card"><span class="label">Disallowed Wash Loss</span><span class="value">${currency(r.disallowedWashLoss)}</span></div>
+        <div class="detail-card"><span class="label">Basis Adj In</span><span class="value">${currency(r.basisAdjustmentIn)}</span></div>
+        <div class="detail-card"><span class="label">Adjusted Total Basis</span><span class="value">${currency(r.adjustedTotalBasis)}</span></div>
+        <div class="detail-card"><span class="label">Adjusted Cost / Share</span><span class="value">${currency(r.adjustedCostPerShare)}</span></div>
+      </div>
+      ${r.matchStatus ? `<p class="lot-sub" style="margin-top:10px;color:#234a73;font-weight:700">${r.matchStatus}</p>` : ``}
+    </div>
+  `;
+  const detailActions = document.getElementById("detailActions");
+  if(detailActions){
+    detailActions.innerHTML = `
+      <button type="button" class="secondary-btn" id="summaryFromDetail">Summary</button>
+      <button type="button" class="secondary-btn delete-btn" onclick="deleteBuy('${r.id}')">Delete Buy</button>
+      <button type="button" class="secondary-btn edit-btn" onclick="openEditBuyDialog('${r.id}')">Edit Buy</button>
+      <button type="button" class="primary-btn" id="closeDetail">Done</button>
+    `;
+    document.getElementById("summaryFromDetail").addEventListener("click", () => {
+      const lotIdToOpen = currentDetailLotId;
+      const detailDialog = document.getElementById("detailDialog");
+      if(detailDialog && detailDialog.open) detailDialog.close();
+      if(lotIdToOpen) openLotOverview(lotIdToOpen);
+    }, { once:true });
+    document.getElementById("closeDetail").addEventListener("click", () => {
+      const detailDialog = document.getElementById("detailDialog");
+      if(detailDialog && detailDialog.open) detailDialog.close();
+    }, { once:true });
+  }
+  document.getElementById("detailDialog").showModal();
+}
+
+
+function ensureEditFields(){
+  const lotForm = document.getElementById("lotForm");
+  if(lotForm && !document.getElementById("lotEditId")){
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.id = "lotEditId";
+    lotForm.appendChild(input);
+  }
+  const saleForm = document.getElementById("saleForm");
+  if(saleForm && !document.getElementById("saleEditId")){
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.id = "saleEditId";
+    saleForm.appendChild(input);
+  }
+}
+
+function resetLotDialogMode(){
+  ensureEditFields();
+  const editId = document.getElementById("lotEditId");
+  if(editId) editId.value = "";
+  const title = document.getElementById("lotDialogTitle");
+  if(title) title.textContent = "Add Buy Lot";
+  const submitBtn = document.querySelector('#lotForm button[type="submit"]');
+  if(submitBtn) submitBtn.textContent = "Save Buy";
+}
+
+function resetSaleDialogMode(){
+  ensureEditFields();
+  const editId = document.getElementById("saleEditId");
+  if(editId) editId.value = "";
+  const title = document.querySelector("#saleForm h3");
+  if(title) title.textContent = "Record Sale";
+  const submitBtn = document.querySelector('#saleForm button[type="submit"]');
+  if(submitBtn) submitBtn.textContent = "Save Sale";
+}
+
+function openEditBuyDialog(lotId){
+  ensureEditFields();
+  const lot = state.lots.find(l => l.id === lotId);
+  if(!lot) return;
+  document.getElementById("lotTicker").value = lot.ticker || "";
+  document.getElementById("lotBuyDate").value = lot.buyDate || "";
+  document.getElementById("lotShares").value = lot.sharesBought ?? "";
+  document.getElementById("lotCost").value = lot.costPerShare ?? "";
+  document.getElementById("lotNote").value = lot.note || "";
+  document.getElementById("lotSleeve").value = lot.sleeve || inferSleeve(lot.ticker);
+  document.getElementById("lotEditId").value = lot.id;
+  const title = document.getElementById("lotDialogTitle");
+  if(title) title.textContent = "Edit Buy Lot";
+  const submitBtn = document.querySelector('#lotForm button[type="submit"]');
+  if(submitBtn) submitBtn.textContent = "Save Changes";
+  closeDialogs();
+  document.getElementById("lotDialog").showModal();
+}
+
+function openEditSaleDialog(saleId){
+  ensureEditFields();
+  const sale = state.sales.find(s => s.id === saleId);
+  if(!sale) return;
+  const lot = state.lots.find(l => l.id === sale.lotId);
+  document.getElementById("saleLotId").value = sale.lotId;
+  document.getElementById("saleDate").value = sale.sellDate || "";
+  document.getElementById("saleShares").value = sale.sharesSold ?? "";
+  document.getElementById("salePrice").value = sale.salePricePerShare ?? "";
+  document.getElementById("saleEditId").value = sale.id;
+  const title = document.querySelector("#saleForm h3");
+  if(title) title.textContent = "Edit Sale";
+  const submitBtn = document.querySelector('#saleForm button[type="submit"]');
+  if(submitBtn) submitBtn.textContent = "Save Changes";
+  if(lot){
+    document.getElementById("saleContext").textContent = `${lot.ticker} • Buy ${dateFmt(lot.buyDate)} • Shares Remaining ${num(lot.sharesRemaining + (sale.sharesSold || 0))} • Cost/Share ${currency(lot.costPerShare)}`;
+  }
+  closeDialogs();
+  document.getElementById("saleDialog").showModal();
+}
+
+
+function deleteBuy(lotId){
+  const row = computedRows().find(x => x.id === lotId);
+  if(!row) return;
+  const saleCount = state.sales.filter(s => s.lotId === lotId).length;
+  const warning = saleCount ? ` This will also remove ${saleCount} linked sale${saleCount === 1 ? "" : "s"}.` : "";
+  if(!confirm(`Delete buy lot ${row.ticker} (${row.lotIdText})?${warning}`)) return;
+  state.sales = state.sales.filter(s => s.lotId !== lotId);
+  state.lots = state.lots.filter(l => l.id !== lotId);
+  if(Array.isArray(state.washMatches)){
+    state.washMatches = state.washMatches.filter(m => m.sourceLotId !== lotId && m.replacementLotId !== lotId);
+  }
+  saveState();
+  closeDialogs();
+  render();
+}
+
+function deleteSale(saleId){
+  const sale = state.sales.find(s => s.id === saleId);
+  if(!sale) return;
+  const lot = state.lots.find(l => l.id === sale.lotId);
+  const lotId = sale.lotId;
+  if(!confirm(`Delete sale dated ${dateFmt(sale.sellDate)} for ${lot ? lot.ticker : "this lot"}?`)) return;
+  if(lot){
+    lot.sharesRemaining = Math.min(lot.sharesBought, (lot.sharesRemaining || 0) + (sale.sharesSold || 0));
+  }
+  state.sales = state.sales.filter(s => s.id !== saleId);
+  saveState();
+  const detailDialog = document.getElementById("detailDialog");
+  const overviewDialog = document.getElementById("overviewDialog");
+  if(detailDialog && detailDialog.open){
+    detailDialog.close();
+    render();
+    openDetail(lotId);
+  } else if(overviewDialog && overviewDialog.open){
+    overviewDialog.close();
+    render();
+    openLotOverview(lotId);
+  } else {
+    render();
+  }
+}
+
+function closeDialogs(){
+  currentDetailLotId = "";
+  for(const id of ["lotDialog","saleDialog","detailDialog","infoDialog","overviewDialog","washMatchDialog"]){
+    const dialog = document.getElementById(id);
+    if(dialog && dialog.open) dialog.close();
+  }
+}
+
+
+function parseWorkbookState(workbook){
+  const dataSheet = workbook.Sheets["1_Data Entry"] || null;
+  if(dataSheet){
+    const rows = XLSX.utils.sheet_to_json(dataSheet, {header:1, defval:"", raw:true, blankrows:false});
+    const reviewSheet = workbook.Sheets["2_Review & Audit"] || null;
+    const reviewRows = reviewSheet ? XLSX.utils.sheet_to_json(reviewSheet, {header:1, defval:"", raw:true, blankrows:false}) : [];
+    const lots = [];
+    const sales = [];
+    for(let i = 5; i < Math.min(rows.length, 505); i += 1){
+      const row = rows[i] || [];
+      const ticker = String(row[4] || "").trim().toUpperCase(); // E
+      if(!ticker) continue;
+      const buyDate = dateToIso(row[6]); // G
+      const sharesBought = toNumber(row[7]); // H
+      const costPerShare = toNumber(row[8]); // I
+      const sellDate = dateToIso(row[9]); // J
+      const sharesSold = toNumber(row[10]); // K
+      const salePricePerShare = toNumber(row[11]); // L
+      const sharesRemainingCell = toNumber(row[12]); // M
+      const note = row[13] ? String(row[13]).trim() : ""; // N
+      if(!buyDate || sharesBought === null || costPerShare === null) continue;
+
+      const reviewRow = reviewRows[i] || [];
+      const generatedLotId = reviewRow[7] ? String(reviewRow[7]).trim() : ""; // H on review tab
+      const importedBasisAdjustmentIn = toNumber(reviewRow[25]) || 0; // Z
+      const importedAdjustedCostPerShare = toNumber(reviewRow[27]); // AB
+      const sharesRemaining = sharesRemainingCell !== null ? Math.max(0, sharesRemainingCell) : Math.max(0, sharesBought - (sharesSold || 0));
+      const lotIdText = generatedLotId || worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare) || `ROW-${i+1}`;
+      const lotId = `xlsx-row-${i+1}`;
+      lots.push({
+        id: lotId,
+        ticker,
+        sleeve: inferSleeve(ticker),
+        buyDate,
+        sharesBought,
+        costPerShare,
+        sharesRemaining,
+        parentLotId: null,
+        lotIdText,
+        importedBasisAdjustmentIn,
+        importedAdjustedCostPerShare,
+        note
+      });
+      if(sellDate && sharesSold !== null && sharesSold > 0 && salePricePerShare !== null && salePricePerShare > 0){
+        sales.push({
+          id: `xlsx-sale-${i+1}`,
+          lotId,
+          sellDate,
+          sharesSold,
+          salePricePerShare
+        });
+      }
+    }
+    if(lots.length) return normalizeState({lots, sales});
+  }
+
+  const sheet = workbook.Sheets["1_Data Entry"] || workbook.Sheets[workbook.SheetNames[0]];
+  if(!sheet) throw new Error("Workbook does not contain a readable sheet.");
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:"", raw:true, blankrows:false});
+  const headerIndexes = [];
+  rows.forEach((row, idx) => {
+    if(String(row[0] || "").trim() === "Ticker" && String(row[1] || "").trim() === "Buy Date" && String(row[2] || "").trim() === "Shares Bought") {
+      headerIndexes.push(idx);
+    }
+  });
+  if(!headerIndexes.length) throw new Error("Could not find the trade-entry table in the workbook.");
+
+  const grouped = new Map();
+  for(const headerIndex of headerIndexes){
+    for(let i = headerIndex + 1; i < rows.length; i += 1){
+      const row = rows[i] || [];
+      const firstCell = String(row[0] || "").trim();
+      if(!firstCell) continue;
+      if(firstCell === "Ticker") break;
+      if(firstCell.includes("Sleeve Lots")) break;
+
+      const ticker = firstCell.toUpperCase();
+      const buyDate = dateToIso(row[1]);
+      const sharesBought = toNumber(row[2]);
+      const costPerShare = toNumber(row[3]);
+      const sellDate = dateToIso(row[4]);
+      const salePricePerShare = toNumber(row[5]);
+      const sharesRemaining = toNumber(row[6]);
+      const rawLotIdText = row[11] ? String(row[11]).trim() : "";
+      const lotIdText = normalizeLotIdText(rawLotIdText, ticker, buyDate, sharesBought, costPerShare);
+      const sharesSold = toNumber(row[12]);
+      const basisAdjustmentIn = toNumber(row[20]) || 0;
+      const adjustedCostPerShare = toNumber(row[22]);
+      const note = row[23] ? String(row[23]).trim() : "";
+
+      if(!ticker || !buyDate || sharesBought === null || costPerShare === null || sharesRemaining === null) continue;
+
+      const groupKey = `${lotIdText}||${ticker}||${buyDate}||${numericLotToken(sharesBought)}||${numericLotToken(costPerShare)}`;
+      if(!grouped.has(groupKey)){
+        grouped.set(groupKey, {
+          id: `xlsx-${groupKey.replace(/[^A-Za-z0-9_-]/g, "_")}`,
+          ticker,
+          sleeve: inferSleeve(ticker),
+          buyDate,
+          costPerShare,
+          lotIdText,
+          sharesBoughtCandidates: [],
+          remainingCandidates: [],
+          noteParts: [],
+          importedBasisAdjustmentIn: 0,
+          importedAdjustedCostPerShare: adjustedCostPerShare,
+          sales: []
+        });
+      }
+      const group = grouped.get(groupKey);
+      group.sharesBoughtCandidates.push(sharesBought);
+      group.remainingCandidates.push(sharesRemaining);
+      if(note) group.noteParts.push(note);
+      group.importedBasisAdjustmentIn = Math.max(group.importedBasisAdjustmentIn || 0, basisAdjustmentIn || 0);
+      if(typeof adjustedCostPerShare === "number") group.importedAdjustedCostPerShare = adjustedCostPerShare;
+      if(sellDate && sharesSold !== null && sharesSold > 0 && salePricePerShare !== null && salePricePerShare > 0){
+        group.sales.push({
+          id: `xlsx-sale-${group.id}-${group.sales.length+1}`,
+          lotId: group.id,
+          sellDate,
+          sharesSold,
+          salePricePerShare
+        });
+      }
+    }
+  }
+
+  const lots = [];
+  const sales = [];
+  for(const group of grouped.values()){
+    const totalSold = group.sales.reduce((sum, sale) => sum + sale.sharesSold, 0);
+    const maxRemaining = group.remainingCandidates.length ? Math.max(...group.remainingCandidates) : 0;
+    const maxBought = group.sharesBoughtCandidates.length ? Math.max(...group.sharesBoughtCandidates) : 0;
+    const sharesBought = Math.max(maxBought, totalSold + maxRemaining);
+    lots.push({
+      id: group.id,
+      ticker: group.ticker,
+      sleeve: group.sleeve,
+      buyDate: group.buyDate,
+      sharesBought,
+      costPerShare: group.costPerShare,
+      sharesRemaining: Math.max(0, maxRemaining),
+      parentLotId: null,
+      lotIdText: group.lotIdText,
+      importedBasisAdjustmentIn: group.importedBasisAdjustmentIn || 0,
+      importedAdjustedCostPerShare: group.importedAdjustedCostPerShare,
+      note: [...new Set(group.noteParts)].join(" | ")
+    });
+    sales.push(...group.sales);
+  }
+
+  if(!lots.length) throw new Error("No trade rows were found in the workbook.");
+  return normalizeState({lots, sales});
+}
+
+
+function clearAllAppData(){
+  const confirmed = window.confirm("Clear all current app data? This removes imported and manually entered app data until you import/export again.");
+  if(!confirmed) return;
+  state = createEmptyState();
+  localStorage.setItem(SUPPRESS_SEED_KEY, "1");
+  localStorage.removeItem(BASELINE_KEY);
+  saveState();
+  render();
+  alert("All app data cleared.");
+}
+
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab + "Tab").classList.add("active");
+  });
+});
+
+document.addEventListener("click", (e) => {
+  const filterBtn = e.target.closest(".filter-toggle");
+  if(filterBtn){
+    const key = filterBtn.dataset.filter;
+    if(activeFilters.has(key)) activeFilters.delete(key);
+    else activeFilters.add(key);
+    render();
+    return;
+  }
+  const actionBtn = e.target.closest(".action-btn");
+  if(actionBtn){
+    e.stopPropagation();
+    const lotId = actionBtn.dataset.lotId;
+    if(actionBtn.dataset.action === "details") openDetail(lotId);
+    if(actionBtn.dataset.action === "sale") openSaleDialog(lotId);
+    return;
+  }
+  const row = e.target.closest(".lot-row");
+  if(row) openLotOverview(row.dataset.lotId);
+});
+
+document.addEventListener("keydown", (e) => {
+  const row = e.target.closest ? e.target.closest(".lot-row") : null;
+  if(row && (e.key === "Enter" || e.key === " ")){
+    e.preventDefault();
+    openLotOverview(row.dataset.lotId);
+  }
+});
+
+document.getElementById("addUsBtn").addEventListener("click", () => openLotDialog("U.S."));
+document.getElementById("addIntlBtn").addEventListener("click", () => openLotDialog("International"));
+document.getElementById("cancelLot").addEventListener("click", () => { resetLotDialogMode(); closeDialogs(); });
+document.getElementById("cancelSale").addEventListener("click", () => { resetSaleDialogMode(); closeDialogs(); });
+document.getElementById("infoBtn").addEventListener("click", () => document.getElementById("infoDialog").showModal());
+document.getElementById("closeInfo").addEventListener("click", closeDialogs);
+
+document.getElementById("skipWashMatch").addEventListener("click", () => {
+  if(!pendingBuyDraft) return;
+  finalizeBuyWithMatches([]);
+});
+document.getElementById("washMatchForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if(!pendingBuyDraft) return;
+  const inputs = [...document.querySelectorAll('#washMatchTable input[data-match-index]')];
+  let total = 0;
+  const records = [];
+  for(const input of inputs){
+    const idx = Number(input.dataset.matchIndex);
+    const candidate = pendingBuyDraft.candidates[idx];
+    if(!candidate) continue;
+    let matchedShares = Number(input.value);
+    if(!Number.isFinite(matchedShares) || matchedShares <= 0) continue;
+    matchedShares = Math.min(candidate.availableShares, matchedShares);
+    total += matchedShares;
+    records.push({
+      id: uid(),
+      sourceLotId: candidate.sourceLotId,
+      replacementLotId: pendingBuyDraft.lot.id,
+      matchedShares,
+      lossPerShare: candidate.lossPerShare,
+      disallowedLoss: matchedShares * candidate.lossPerShare,
+      sourceSellDate: candidate.sourceSellDate,
+      replacementBuyDate: pendingBuyDraft.lot.buyDate
+    });
+  }
+  if(total > pendingBuyDraft.lot.sharesBought + 0.000001){
+    alert("Matched shares cannot exceed replacement shares bought.");
+    return;
+  }
+  finalizeBuyWithMatches(records);
+});
+ensureEditFields();
+resetLotDialogMode();
+resetSaleDialogMode();
+
+document.getElementById("lotForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  ensureEditFields();
+  const editId = document.getElementById("lotEditId").value;
+  const ticker = document.getElementById("lotTicker").value.trim().toUpperCase();
+  const buyDate = document.getElementById("lotBuyDate").value;
+  const sharesBought = parseFloat(document.getElementById("lotShares").value);
+  const costPerShare = parseFloat(document.getElementById("lotCost").value);
+  const note = document.getElementById("lotNote").value.trim();
+  const sleeve = document.getElementById("lotSleeve").value || inferSleeve(ticker);
+  if(!ticker || !buyDate || !(sharesBought > 0) || !(costPerShare > 0)){
+    alert("Please complete the required buy fields.");
+    return;
+  }
+  if(editId){
+    const idx = state.lots.findIndex(l => l.id === editId);
+    if(idx < 0) return;
+    const existingLot = state.lots[idx];
+    const soldShares = Math.max(0, (existingLot.sharesBought || 0) - (existingLot.sharesRemaining || 0));
+    if(sharesBought < soldShares){
+      alert(`Shares Bought cannot be less than shares already sold (${num(soldShares)}).`);
+      return;
+    }
+    const updatedLot = {
+      ...existingLot,
+      ticker,
+      sleeve,
+      buyDate,
+      sharesBought,
+      costPerShare,
+      note,
+      sharesRemaining: Math.max(0, sharesBought - soldShares),
+      lotIdText: worksheetLotIdText(ticker, buyDate, sharesBought, costPerShare)
+    };
+    const candidates = candidateLossLotsForReplacement(ticker, buyDate, sharesBought, editId);
+    if(Array.isArray(state.washMatches)){
+      state.washMatches = state.washMatches.filter(m => m.replacementLotId !== editId);
+    }
+    if(candidates.length){
+      pendingBuyDraft = { lot: updatedLot, candidates, editLotId: editId };
+      document.getElementById("washMatchContext").textContent = `${updatedLot.lotIdText} • ${num(sharesBought)} replacement shares available`;
+      renderWashMatchDialog();
+      document.getElementById("washMatchDialog").showModal();
+      return;
+    }
+    state.lots[idx] = updatedLot;
+    sortLots();
+    saveState();
+    resetLotDialogMode();
+    closeDialogs();
+    render();
+    return;
+  }
+  const lot = {id:uid(),ticker,sleeve,buyDate,sharesBought,costPerShare,sharesRemaining:sharesBought,parentLotId:null,note,lotIdText:worksheetLotIdText(ticker,buyDate,sharesBought,costPerShare)};
+  const candidates = candidateLossLotsForReplacement(ticker, buyDate, sharesBought, null);
+  if(candidates.length){
+    pendingBuyDraft = { lot, candidates };
+    document.getElementById("washMatchContext").textContent = `${lot.lotIdText} • ${num(sharesBought)} replacement shares available`;
+    renderWashMatchDialog();
+    document.getElementById("washMatchDialog").showModal();
+    return;
+  }
+  state.lots.push(lot);
+  sortLots();
+  saveState();
+  resetLotDialogMode();
+  closeDialogs();
+  render();
+});
+
+document.getElementById("saleForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  ensureEditFields();
+  const editSaleId = document.getElementById("saleEditId").value;
+  const lotId = document.getElementById("saleLotId").value;
+  const sellDate = document.getElementById("saleDate").value;
+  const sharesSold = parseFloat(document.getElementById("saleShares").value);
+  const salePricePerShare = parseFloat(document.getElementById("salePrice").value);
+
+  const idx = state.lots.findIndex(l => l.id === lotId);
+  const lot = state.lots[idx];
+  if(idx < 0 || !(sharesSold > 0) || !(salePricePerShare > 0)){
+    alert("Shares sold must be > 0 and sale price must be > 0.");
+    return;
+  }
+
+  let availableShares = lot.sharesRemaining || 0;
+  if(editSaleId){
+    const existingSale = state.sales.find(s => s.id === editSaleId);
+    if(existingSale) availableShares += existingSale.sharesSold || 0;
+  }
+  if(sharesSold > availableShares){
+    alert("Shares sold must be <= shares remaining for this lot.");
+    return;
+  }
+
+  if(editSaleId){
+    const saleIdx = state.sales.findIndex(s => s.id === editSaleId);
+    const oldSale = state.sales[saleIdx];
+    if(saleIdx < 0 || !oldSale) return;
+    state.lots[idx].sharesRemaining = Math.max(0, (lot.sharesRemaining || 0) + (oldSale.sharesSold || 0) - sharesSold);
+    state.sales[saleIdx] = { ...oldSale, lotId, sellDate, sharesSold, salePricePerShare };
+  } else {
+    state.lots[idx].sharesRemaining = Math.max(0, (lot.sharesRemaining || 0) - sharesSold);
+    state.sales.push({id:uid(),lotId,sellDate,sharesSold,salePricePerShare});
+  }
+  sortLots();
+  saveState();
+  resetSaleDialogMode();
+  closeDialogs();
+  render();
+});
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  openExportReviewDialog();
+});
+const clearAllBtn = document.getElementById("clearAllBtn");
+if(clearAllBtn) clearAllBtn.addEventListener("click", clearAllAppData);
+
+
+document.getElementById("importXlsx").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const workbook = XLSX.read(await file.arrayBuffer(), {type:"array", cellDates:true});
+    const imported = parseWorkbookState(workbook);
+    if(!imported.lots.length) throw new Error("No lots were imported.");
+    state = imported;
+    localStorage.removeItem(SUPPRESS_SEED_KEY);
+    saveState();
+    saveBaselineSnapshot();
+    render();
+    alert(`Spreadsheet import complete. Loaded ${state.lots.length} lots and ${state.sales.length} sales.`);
+  } catch(err){
+    alert("Spreadsheet import failed: " + err.message);
+  } finally {
+    e.target.value = "";
+  }
+});
+
+
+function cancelExportReviewDialog(){
+  const dialog = document.getElementById("exportReviewDialog");
+  if(dialog && dialog.open) dialog.close();
+}
+async function confirmExportReviewDialog(){
+  try{
+    await runSpreadsheetExport();
+    cancelExportReviewDialog();
+  } catch(err){
+    alert("Spreadsheet export failed: " + err.message);
+  }
+}
+const cancelExportBtn = document.getElementById("cancelExportReview");
+if(cancelExportBtn) cancelExportBtn.addEventListener("click", cancelExportReviewDialog);
+const confirmExportBtn = document.getElementById("confirmExportReview");
+if(confirmExportBtn) confirmExportBtn.addEventListener("click", confirmExportReviewDialog);
+
+
+async function disableServiceWorkers(){
+  if(!("serviceWorker" in navigator)) return;
+  try{
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(reg => reg.unregister()));
+    if(window.caches && caches.keys){
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.filter(name => name.includes("sale-tracker-pwa")).map(name => caches.delete(name)));
+    }
+  } catch(err){
+    console.warn("Service worker cleanup failed", err);
+  }
+}
+
+window.addEventListener("load", disableServiceWorkers);
+ensureBaselineSnapshot();
+render();
