@@ -1,4 +1,4 @@
-const APP_VERSION = "v35.1";
+const APP_VERSION = "v35.3";
 
 const STORE_KEY = "sale-tracker-pwa-v34.6";
 const LEGACY_STORE_KEYS = [];
