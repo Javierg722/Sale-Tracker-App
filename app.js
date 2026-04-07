@@ -851,7 +851,10 @@ function computeCalculatedModel(){
     const lot = lotMap.get(sale.lotId);
     if(!lot) continue;
     const lotStats = perLot[lot.id];
-    const basisAdjustmentIn = (basisIn[lot.id] || 0) + (lot.importedBasisAdjustmentIn || 0);
+   const basisAdjustmentIn =
+  basisIn[lot.id] !== undefined
+    ? basisIn[lot.id]
+    : (lot.importedBasisAdjustmentIn || 0);
     const adjustedCostPerShare = typeof lot.importedAdjustedCostPerShare === "number"
       ? lot.importedAdjustedCostPerShare
       : (lot.sharesBought ? ((lot.sharesBought * lot.costPerShare) + basisAdjustmentIn) / lot.sharesBought : lot.costPerShare);
@@ -930,7 +933,10 @@ function computeCalculatedModel(){
   const rows = lots.map((lot, idx) => {
     const lotStats = perLot[lot.id];
     const totalCost = lot.sharesBought * lot.costPerShare;
-    const basisAdjustmentIn = (basisIn[lot.id] || 0) + (lot.importedBasisAdjustmentIn || 0);
+    const basisAdjustmentIn =
+  basisIn[lot.id] !== undefined
+    ? basisIn[lot.id]
+    : (lot.importedBasisAdjustmentIn || 0);
     const adjustedTotalBasis = totalCost + basisAdjustmentIn;
     const adjustedCostPerShare = typeof lot.importedAdjustedCostPerShare === "number"
       ? lot.importedAdjustedCostPerShare
